@@ -26,7 +26,7 @@
  * 1 TCP, 1200+xxx (last three digits of your ID) (phase 2)
  **********************************************************/
 #define PORT_S_P1 "1100794"	//Port number of Server in Phase 1
-#define PORT_S_P2 "1200794"
+#define PORT_S_P2 "1200794"ssss
 
 #define MAXUSER 4
 #define NAME_MAX_LEN 10		//max length of a user name in Registration.txt
