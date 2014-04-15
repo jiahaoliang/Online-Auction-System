@@ -58,7 +58,15 @@ int readRegistration(const char *filename, struct singlyLinkedList *list){
 
 		t = strchr(p, '\n');		//Locate occurrence of '\n' in string
 		*t = '\0';
-		strcpy (newObj->accountNum,p);
+
+		//Each bank account is a 9 digit string and should start with “4519”.
+		//For example “4519 43 546” is a valid bank account.
+		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
+			strcpy (newObj->accountNum,p);
+		else{
+			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",newObj->name,newObj->password,p);
+			return 1;
+		}
 
 
 		if (listAppend(list, (void *)newObj) != 0) return 1;	//append newNode to the list
@@ -98,7 +106,7 @@ int main(void){
 	memset(reg_list, 0, sizeof(struct singlyLinkedList));
 
 	if (readRegistration("Registration.txt", reg_list) != 0){	//read Registration.txt and load user information
-		perror("readRegistration: ");
+		perror("readRegistration");
 		return 1;
 	}
 

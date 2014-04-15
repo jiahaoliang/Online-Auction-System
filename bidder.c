@@ -19,8 +19,6 @@
 
 #include "EE450.h"
 
-#define PORT "3490" // the port client will be connecting to
-
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 
 // get sockaddr, IPv4 or IPv6:
@@ -33,7 +31,58 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(int argc, char *argv[])
+//read bidderPass.txt
+int readBidderPass(const char *filename, struct userNode *node){
+	FILE *fp = fopen(filename, "r");
+	char buffer[REG_TXT_LINE_LEN] = {0};
+	char *p = buffer, *t = buffer;
+
+	if (fp==NULL) return 1;
+
+	/*read a line from bidderPass.txt and parse it*/
+	if (fgets(buffer, PASS_TXT_LINE_LEN, fp) != NULL){
+
+		if ((t = strchr(p, ' ')) != NULL){		//Locate first occurrence of ' '(space) in string
+			*t++ = '\0';
+			if ((node->type = atoi(p)) != 1){
+				fprintf(stderr,"Not a bidder: %d %s %s %s\n",node->type,node->name,node->password,p);
+				return 1;
+			}
+			p = t;
+		}
+		if ((t = strchr(p, ' ')) != NULL){		//Locate second occurrence of ' '(space) in string
+			*t++ = '\0';
+			strcpy (node->name,p);
+			p = t;
+		}
+		if ((t = strchr(p, ' ')) != NULL){		//Locate third occurrence of ' '(space) in string
+					*t++ = '\0';
+					strcpy (node->password,p);
+					p = t;
+				}
+
+		t = strchr(p, '\n');		//Locate occurrence of '\n' in string
+		*t = '\0';
+
+		//Each bank account is a 9 digit string and should start with “4519”.
+		//For example “4519 43 546” is a valid bank account.
+		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
+			strcpy (node->accountNum,p);
+		else{
+			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",node->name,node->password,p);
+			return 1;
+		}
+	}
+	else{
+		fprintf(stderr,"Can't read any information from %s\n",filename);
+		return 1;
+	}
+
+	fclose(fp);
+	return 0;
+}
+
+int main(void)
 {
 	int sockfd, numbytes;
 	char buf[MAXDATASIZE];
@@ -41,16 +90,13 @@ int main(int argc, char *argv[])
 	int rv;
 	char s[INET6_ADDRSTRLEN];
 
-	if (argc != 2) {
-	    fprintf(stderr,"usage: client hostname\n");
-	    exit(1);
-	}
 
+	/*phase 1: Authorization*/
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(HOSTNAME, PORT_S_P1, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
