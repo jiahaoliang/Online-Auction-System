@@ -83,7 +83,7 @@ int main(void){
 
 	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
 	int numbytes;
-	char buf[MAXDATASIZE];
+	char buf[MAXDATASIZE], *str;
 	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_storage their_addr; // connector's address information
 	socklen_t sin_size;
@@ -176,7 +176,13 @@ int main(void){
 		#ifdef DEBUG
 			puts(buf);
 		#endif
-			//04/15 03:47 continue to work here, gonna develop codes deal with the login# commmand
+			//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
+			if(strcmp(p = strtok(buf,"#"), "Login") == 0){
+				struct userNode *newUser = malloc(sizeof(struct userNode));
+				memset(newUser,0,sizeof(struct userNode));
+
+			}
+
 			close(new_fd);
 			exit(0);
 		}
