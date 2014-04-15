@@ -49,7 +49,7 @@ int readRegistration(const char *filename, struct singlyLinkedList *list){
 		strcpy (newObj->name,p);
 		p = strtok(NULL, " ");
 		strcpy (newObj->password,p);
-		p = strtok(NULL, " ");
+		p = strtok(NULL, "\n");
 		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
 			strcpy (newObj->accountNum,p);
 		else{
@@ -82,6 +82,8 @@ void *get_in_addr(struct sockaddr *sa)
 int main(void){
 
 	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
+	int numbytes;
+	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_storage their_addr; // connector's address information
 	socklen_t sin_size;
@@ -90,8 +92,11 @@ int main(void){
 	char s[INET6_ADDRSTRLEN];
 	int rv;
 
-	struct singlyLinkedList *reg_list = malloc(sizeof(struct singlyLinkedList));
+	struct singlyLinkedList *reg_list, *accept_list;
+	reg_list = malloc(sizeof(struct singlyLinkedList));
 	memset(reg_list, 0, sizeof(struct singlyLinkedList));
+	accept_list = malloc(sizeof(struct singlyLinkedList));
+	memset(accept_list, 0, sizeof(struct singlyLinkedList));
 
 	if (readRegistration("Registration.txt", reg_list) != 0){	//read Registration.txt and load user information
 		perror("readRegistration");
@@ -162,8 +167,16 @@ int main(void){
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
-			if (send(new_fd, "Hello, world!", 13, 0) == -1)
-				perror("send");
+//			if (send(new_fd, "Hello, world!", 13, 0) == -1)
+//				perror("send");
+			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			    perror("recv");
+			    exit(1);
+			}
+		#ifdef DEBUG
+			puts(buf);
+		#endif
+			//04/15 03:47 continue to work here, gonna develop codes deal with the login# commmand
 			close(new_fd);
 			exit(0);
 		}

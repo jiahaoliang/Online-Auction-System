@@ -32,9 +32,9 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 //read sellerPass.txt
-int readSellerPass(const char *filename, struct userNode *node){
+int readSellerPass(const char *filename, struct userNode **node){
 	FILE *fp = fopen(filename, "r");
-	char buffer[REG_TXT_LINE_LEN] = {0};
+	char buffer[PASS_TXT_LINE_LEN] = {0};
 	char *p = buffer;
 
 	if (fp==NULL) return 1;
@@ -43,25 +43,23 @@ int readSellerPass(const char *filename, struct userNode *node){
 	if (fgets(buffer, PASS_TXT_LINE_LEN, fp) != NULL){
 
 		p = buffer;
-				struct userNode *newObj = malloc(sizeof(struct userNode));	//construct a new data node
-				memset(newObj, 0, sizeof(struct userNode));
 
-				p = strtok(buffer, " ");
-				if ((node->type = atoi(p)) != 2){
-					fprintf(stderr,"Not a seller: %d %s %s %s\n",node->type,node->name,node->password,p);
-					return 1;
-				}
-				p = strtok(buffer, " ");
-				strcpy (newObj->name,p);
-				p = strtok(NULL, " ");
-				strcpy (newObj->password,p);
-				p = strtok(NULL, " ");
-				if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
-					strcpy (newObj->accountNum,p);
-				else{
-					fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",newObj->name,newObj->password,p);
-					return 1;
-				}
+		p = strtok(buffer, " ");
+		if ((node->type = atoi(p)) != 2){
+			fprintf(stderr,"Not a seller: %d %s %s %s\n",(*node)->type,(*node)->name,(*node)->password,p);
+			return 1;
+		}
+		p = strtok(NULL, " ");
+		strcpy ((*node)->name,p);
+		p = strtok(NULL, " ");
+		strcpy ((*node)->password,p);
+		p = strtok(NULL, "\n");
+		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
+			strcpy ((*node)->accountNum,p);
+		else{
+			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",(*node)->name,(*node)->password,p);
+			return 1;
+		}
 	}
 	else{
 		fprintf(stderr,"Can't read any information from %s\n",filename);

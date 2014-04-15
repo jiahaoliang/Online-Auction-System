@@ -19,8 +19,6 @@
 
 #include "EE450.h"
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once
-
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -32,9 +30,9 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 //read bidderPass.txt
-int readBidderPass(const char *filename, struct userNode *node){
+int readBidderPass(const char *filename, struct userNode **node){
 	FILE *fp = fopen(filename, "r");
-	char buffer[REG_TXT_LINE_LEN] = {0};
+	char buffer[PASS_TXT_LINE_LEN] = {0};
 	char *p = buffer;
 
 	if (fp==NULL) return 1;
@@ -43,23 +41,21 @@ int readBidderPass(const char *filename, struct userNode *node){
 	if (fgets(buffer, PASS_TXT_LINE_LEN, fp) != NULL){
 
 		p = buffer;
-		struct userNode *newObj = malloc(sizeof(struct userNode));	//construct a new data node
-		memset(newObj, 0, sizeof(struct userNode));
 
 		p = strtok(buffer, " ");
-		if ((node->type = atoi(p)) != 1){
-			fprintf(stderr,"Not a bidder: %d %s %s %s\n",node->type,node->name,node->password,p);
+		if (((*node)->type = atoi(p)) != 1){
+			fprintf(stderr,"Not a bidder: %d %s %s %s\n",(*node)->type,(*node)->name,(*node)->password,p);
 			return 1;
 		}
-		p = strtok(buffer, " ");
-		strcpy (newObj->name,p);
 		p = strtok(NULL, " ");
-		strcpy (newObj->password,p);
+		strcpy ((*node)->name,p);
 		p = strtok(NULL, " ");
+		strcpy ((*node)->password,p);
+		p = strtok(NULL, "\n");
 		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
-			strcpy (newObj->accountNum,p);
+			strcpy ((*node)->accountNum,p);
 		else{
-			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",newObj->name,newObj->password,p);
+			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",(*node)->name,(*node)->password,p);
 			return 1;
 		}
 
@@ -80,6 +76,15 @@ int main(void)
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
+
+	struct userNode* bidderInfo_1;
+	bidderInfo_1 = malloc(sizeof(struct userNode));
+	memset(bidderInfo_1,0,sizeof(struct userNode));
+
+	if (readBidderPass("bidderPass1.txt", &bidderInfo_1) != 0){	//read bidderpass1.txt and load user information
+			perror("bidderPass1.txt");
+			return 1;
+		}
 
 
 	/*phase 1: Authorization*/
@@ -120,6 +125,15 @@ int main(void)
 
 	freeaddrinfo(servinfo); // all done with this structure
 
+	//Login cammand: "Login#username password bankaccount"
+	sprintf(buf,"Login#%s %s %s", bidderInfo_1->name, bidderInfo_1->password, bidderInfo_1->accountNum);
+#ifdef DEBUG
+	puts(buf);
+#endif
+	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+		    perror("recv");
+		    exit(1);
+		}
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
 	    exit(1);
