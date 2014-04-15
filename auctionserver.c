@@ -18,35 +18,14 @@
 #include <sys/wait.h>
 
 #include "singlyLinkedList.h"
-
-
-/**********************************************************
- * Static Ports
- * 1 TCP, 1100+xxx (last three digits of your ID) (phase 1)
- * 1 TCP, 1200+xxx (last three digits of your ID) (phase 2)
- **********************************************************/
-#define PORT_S_P1 "1100794"	//Port number of Server in Phase 1
-#define PORT_S_P2 "1200794"
+#include "EE450.h"
 
 #define MAXUSER 4
-#define NAME_MAX_LEN 10		//max length of a user name in Registration.txt
-#define PW_MX_LEN 10		//max length of a password in Registration.txt
-#define ACCOUNT_NUM_MAX_LEN 10	//max length of an account number in Registration.txt
+
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
 
 #define BACKLOG 10	 // how many pending connections queue will hold
 
-/**********************************************************
- * Operations for user single link list:
- * 		struct userNode;
- * 		struct userList;
- * 		int userListAppend(struct userList*);
- **********************************************************/
-struct userNode{
-	char name[NAME_MAX_LEN];
-	char password[PW_MX_LEN];
-	char accountNum[ACCOUNT_NUM_MAX_LEN];
-};
 
 /*
  * read Registration.txt and parse all information then store them
