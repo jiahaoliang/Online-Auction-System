@@ -64,6 +64,52 @@ int readRegistration(const char *filename, struct singlyLinkedList *list){
 	return 0;
 }
 
+//if each field matches between user_1 and user_2, return 0; otherwise, return 1;
+int compareUser(struct userNode *user_1, struct userNode *user_2){
+	if (user_1 == NULL || user_2 == NULL) return 1;
+	else return (strcmp(user_1->name, user_2->name) ||
+				 strcmp(user_1->password, user_2->password) ||
+		         strcmp(user_1->accountNum, user_2->accountNum));
+}
+
+/*
+ * char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLinkedList *accept_list);
+ * usage:	deal with the Login# command. If the user information matches any user in reg_list,
+ * 			copy it into accept_list, return "Accepted#"
+ * input: 	char* buf = "Login#username password bankaccount"
+ * output:	 1. "Accepted#", if successful;
+ * 		  	 2. "Rejected#", if unsuccessful;
+ */
+char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLinkedList *accept_list){
+	char *str = NULL, *accept = "Accepted#", *reject = "Rejected#";
+	struct userNode *newUser = malloc(sizeof(struct userNode));
+	memset(newUser,0,sizeof(struct userNode));
+
+	if(strcmp(str = strtok(buf,"#"), "Login") == 0){
+		strcpy(newUser->name,strtok(NULL," "));
+		strcpy(newUser->password,strtok(NULL," "));
+		str = strtok(NULL, "\n");
+		if (strlen(str) == 9 && strncmp(str,"4519",4) == 0)
+			strcpy (newUser->accountNum,str);
+		else{
+			fprintf(stderr,"Wrong Bank Account: Login#%s %s %s\n",newUser->name,newUser->password,str);
+			return reject;
+		}
+	}
+	struct userNode *sameNameUser = (struct userNode *)(listSearch(reg_list, findByName, (void*)newUser->name)->obj);
+	if (sameNameUser != NULL){
+		if (compareUser(newUser, sameNameUser)){
+			fprintf(stderr,"No matching user: Login#%s %s %s\n",newUser->name,newUser->password,str);
+			return reject;
+		}else{
+			if (listAppend(accept_list, (void*)newUser)){
+				fprintf(stderr,"Cannot save accetped user: Login#%s %s %s\n",newUser->name,newUser->password,str);
+				return reject;
+			}else return accept;
+		}
+	}else return reject;
+}
+
 void sigchld_handler(int s)
 {
 	while(waitpid(-1, NULL, WNOHANG) > 0);
@@ -83,7 +129,7 @@ int main(void){
 
 	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
 	int numbytes;
-	char buf[MAXDATASIZE], *str;
+	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_storage their_addr; // connector's address information
 	socklen_t sin_size;
@@ -93,6 +139,7 @@ int main(void){
 	int rv;
 
 	struct singlyLinkedList *reg_list, *accept_list;
+
 	reg_list = malloc(sizeof(struct singlyLinkedList));
 	memset(reg_list, 0, sizeof(struct singlyLinkedList));
 	accept_list = malloc(sizeof(struct singlyLinkedList));
@@ -167,8 +214,6 @@ int main(void){
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
-//			if (send(new_fd, "Hello, world!", 13, 0) == -1)
-//				perror("send");
 			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 			    perror("recv");
 			    exit(1);
@@ -177,11 +222,9 @@ int main(void){
 			puts(buf);
 		#endif
 			//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
-			if(strcmp(p = strtok(buf,"#"), "Login") == 0){
-				struct userNode *newUser = malloc(sizeof(struct userNode));
-				memset(newUser,0,sizeof(struct userNode));
-
-			}
+			buf = processLogin(buf, reg_list, accept_list);
+			if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
+				perror("send");
 
 			close(new_fd);
 			exit(0);
