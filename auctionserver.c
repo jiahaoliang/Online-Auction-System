@@ -81,10 +81,10 @@ int compareUser(struct userNode *user_1, struct userNode *user_2){
  * output:	 1. "Accepted#", if successful;
  * 		  	 2. "Rejected#", if unsuccessful;
  */
-char* processLogin(char* buf, struct acceptedUserNode* newUser, struct singlyLinkedList *reg_list, struct singlyLinkedList *accept_list){
+char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLinkedList *accept_list){
 	char *str = NULL, *accept = "Accepted#", *reject = "Rejected#";
-//	struct userNode *newUser = malloc(sizeof(struct userNode));
-//	memset(newUser,0,sizeof(struct userNode));
+	struct userNode *newUser = malloc(sizeof(struct userNode));
+	memset(newUser,0,sizeof(struct userNode));
 	#ifdef DEBUG
 		puts("bp:processLogin:");
 	#endif
@@ -97,8 +97,8 @@ char* processLogin(char* buf, struct acceptedUserNode* newUser, struct singlyLin
 		strcpy(newUser->name,strtok(NULL," "));
 		strcpy(newUser->password,strtok(NULL," "));
 		str = strtok(NULL, "\n");
-//		printf("Phase 1: Authentication request. User%d: Username: %s Password: %s Bank Account: %s ",
-//				++g_userIndex, newUser->name, newUser->password, str);
+		printf("Phase 1: Authentication request. User%d: Username: %s Password: %s Bank Account: %s ",
+				++g_userIndex, newUser->name, newUser->password, str);
 		if (strlen(str) == 9 && strncmp(str,"4519",4) == 0)
 			strcpy (newUser->accountNum,str);
 		else{
@@ -108,7 +108,7 @@ char* processLogin(char* buf, struct acceptedUserNode* newUser, struct singlyLin
 	}
 	struct userNode *sameNameUser = (struct userNode *)(listSearch(reg_list, findByName, (void*)(newUser->name))->obj);
 	if (sameNameUser != NULL){
-		if (compareUser((struct userNode *)newUser, sameNameUser)){
+		if (compareUser(newUser, sameNameUser)){
 			fprintf(stderr,"No matching user: Login#%s %s %s\n",newUser->name,newUser->password,str);
 			return reject;
 		}else{
@@ -150,11 +150,10 @@ int main(void){
 
 	struct singlyLinkedList *reg_list, *accept_list;
 
-	reg_list = malloc(sizeof(struct singlyLinkedList));	//registration list, contain all users info in Registration.txt
+	reg_list = malloc(sizeof(struct singlyLinkedList));
 	memset(reg_list, 0, sizeof(struct singlyLinkedList));
-	accept_list = malloc(sizeof(struct singlyLinkedList));	// contain all users accepted
+	accept_list = malloc(sizeof(struct singlyLinkedList));
 	memset(accept_list, 0, sizeof(struct singlyLinkedList));
-
 
 	if (readRegistration("Registration.txt", reg_list) != 0){	//read Registration.txt and load user information
 		perror("readRegistration");
@@ -164,8 +163,8 @@ int main(void){
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;	//ipv4
 	hints.ai_socktype = SOCK_STREAM;	//TCP socket
-
-	if ((rv = getaddrinfo(HOSTNAME, PORT_S_P1, &hints, &servinfo)) != 0) {
+	hints.ai_flags = AI_PASSIVE; // use my IP
+	if ((rv = getaddrinfo(NULL, PORT_S_P1, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
@@ -192,7 +191,6 @@ int main(void){
 		fprintf(stderr, "server: failed to bind\n");
 		return 2;
 	}
-
 
 	inet_ntop(p->ai_family,	get_in_addr(p->ai_addr),
 				s, sizeof s);
@@ -238,22 +236,17 @@ int main(void){
 //			getchar();
 	#endif
 		//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
-		struct acceptedUserNode *newUser = malloc(sizeof(struct acceptedUserNode));
-		memset(newUser,0,sizeof(struct acceptedUserNode));
-		strcpy(buf,processLogin(buf, newUser, reg_list, accept_list));	//process Login# command, and put the response command to buf
+		strcpy(buf,processLogin(buf, reg_list, accept_list));	//process Login# command, and put the response command to buf
+
 		inet_ntop(their_addr.ss_family,
 			get_in_addr((struct sockaddr *)&their_addr),
 			s, sizeof s);
 //		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in*)(&their_addr))->sin_port);
-		printf("Phase 1: Authentication request. User%d: Username:%s Password:%s "
-				"Bank Account:%s User IP Addr:%s Authorized:%s\n",
-				++g_userIndex, newUser->name, newUser->password, newUser->accountNum,
-				s, buf);
-		if(!strcmp(buf, "Accepted#")) strcpy(newUser->ip_addr, s);
-//		printf("User IP Addr: %s. Authorized: %s\n", s, buf);
+		printf("User IP Addr: %s. Authorized: %s\n", s, buf);
 	#ifdef DEBUG
 		puts(buf);
 	#endif
+
 		if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 			perror("send");
 	#ifdef DEBUG
