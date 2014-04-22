@@ -19,8 +19,6 @@
 
 #include "EE450.h"
 
-int g_bidderIndex = 0;	//Global variable, indicate bidder1 or bidder2
-
 // get sockaddr,
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -32,7 +30,7 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 //read bidderPass.txt
-int readBidderPass(const char *filename, struct userNode **node){
+int readBidderPass(int bidderIndex, const char *filename, struct userNode **node){
 	FILE *fp = fopen(filename, "r");
 	char buffer[PASS_TXT_LINE_LEN] = {0};
 	char *p = buffer;
@@ -49,7 +47,7 @@ int readBidderPass(const char *filename, struct userNode **node){
 			fprintf(stderr,"Not a bidder: %d %s %s %s\n",(*node)->type,(*node)->name,(*node)->password,p);
 			return 1;
 		}
-		(*node)->userIndex = ++g_bidderIndex;
+		(*node)->userIndex = bidderIndex;
 		p = strtok(NULL, " ");
 		strcpy ((*node)->name,p);
 		p = strtok(NULL, " ");
@@ -58,7 +56,7 @@ int readBidderPass(const char *filename, struct userNode **node){
 		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
 			strcpy ((*node)->accountNum,p);
 		else{
-			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",(*node)->name,(*node)->password,p);
+			fprintf(stderr,"Wrong Bank Account: %s %s %s\n",(*node)->name,(*node)->password,p);
 			return 1;
 		}
 
@@ -78,17 +76,15 @@ int main(void)
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
-	char s[INET6_ADDRSTRLEN];
+	char s[INET_ADDRSTRLEN];
+	struct sockaddr_in sa;	//store local address
+	int sa_len = sizeof(sa);
 
-	struct userNode* bidderInfo_1;
-	bidderInfo_1 = malloc(sizeof(struct userNode));
-	memset(bidderInfo_1,0,sizeof(struct userNode));
+	int cpid;
 
-	if (readBidderPass("bidderPass1.txt", &bidderInfo_1) != 0){	//read bidderpass1.txt and load user information
-			perror("bidderPass1.txt");
-			return 1;
-		}
-
+	struct userNode* bidderInfo;
+	bidderInfo = malloc(sizeof(struct userNode));
+	memset(bidderInfo,0,sizeof(struct userNode));
 
 	/*phase 1: Authorization*/
 	memset(&hints, 0, sizeof hints);
@@ -98,6 +94,21 @@ int main(void)
 	if ((rv = getaddrinfo(HOSTNAME, PORT_S_P1, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
+	}
+
+	cpid = fork();
+	if(cpid){
+		//parent process
+		if (readBidderPass(2, "bidderPass2.txt", &bidderInfo) != 0){	//read bidderpass1.txt and load user information
+				perror("bidderPass1.txt");
+				return 1;
+			}
+		sleep(2);	//child sleep 2s, wait until parent finished
+	}else{
+		//child process
+		if (readBidderPass(1, "bidderPass1.txt", &bidderInfo) != 0){	//read bidderpass1.txt and load user information
+						perror("bidderPass1.txt");
+						return 1;}
 	}
 
 	// loop through all the results and connect to the first we can
@@ -122,14 +133,30 @@ int main(void)
 		return 2;
 	}
 
+	//Phase 1: <Bidder#>__ has TCP port ___ and IP address: ____
+	getsockname(sockfd, (struct sockaddr*)&sa, &sa_len);
+	inet_ntop(AF_INET, (void*)&(sa.sin_addr), s, sizeof s);
+
+	if(cpid){
+		//parent process
+		printf("Phase 1: <Bidder2> has TCP port %d and IP address: %s\n",	sa.sin_port, s);
+	}else{
+		//child process
+		printf("Phase 1: <Bidder1> has TCP port %d and IP address: %s\n",	sa.sin_port, s);
+	}
+
+#ifdef DEBUG
 	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
 			s, sizeof s);
 	printf("client: connecting to %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
-
+#endif
 	freeaddrinfo(servinfo); // all done with this structure
 
 	//Login cammand: "Login#type userIndex username password bankaccount"
-	sprintf(buf,"Login#%d %d %s %s %s",bidderInfo_1->type, bidderInfo_1->userIndex, bidderInfo_1->name, bidderInfo_1->password, bidderInfo_1->accountNum);
+	sprintf(buf,"Login#%d %d %s %s %s",bidderInfo->type, bidderInfo->userIndex,
+			bidderInfo->name, bidderInfo->password, bidderInfo->accountNum);
+	printf("Phase 1: Login request. User:%s password:%s Bank account:%s\n",
+			bidderInfo->name, bidderInfo->password, bidderInfo->accountNum);
 #ifdef DEBUG
 	puts(buf);
 #endif
@@ -142,10 +169,9 @@ int main(void)
 	    perror("recv");
 	    exit(1);
 	}
-
 	buf[numbytes] = '\0';
-
-	printf("client: received '%s'\n",buf);
+	printf("Phase 1: Login request reply: %s .\n", buf);
+//	printf("client: received '%s'\n",buf);
 
 	close(sockfd);
 

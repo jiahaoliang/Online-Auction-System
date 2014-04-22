@@ -164,8 +164,9 @@ int main(void){
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;	//ipv4
 	hints.ai_socktype = SOCK_STREAM;	//TCP socket
+	gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
 
-	if ((rv = getaddrinfo(HOSTNAME, PORT_S_P1, &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(buf, PORT_S_P1, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
