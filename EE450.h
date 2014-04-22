@@ -26,8 +26,8 @@
  * 1 TCP, 1100+xxx (last three digits of your ID) (phase 1)
  * 1 TCP, 1200+xxx (last three digits of your ID) (phase 2)
  **********************************************************/
-#define PORT_S_P1 "1100794"	//Port number of Server in Phase 1
-#define PORT_S_P2 "1200794"	//Port number of Server in Phase 2
+#define PORT_S_P1 "1894"	//Port number of Server in Phase 1, 1100+794 = 1894
+#define PORT_S_P2 "1994"	//Port number of Server in Phase 2, 1200+794 = 1994
 
 
 struct userNode{

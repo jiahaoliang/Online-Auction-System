@@ -188,7 +188,7 @@ int main(void){
 		fprintf(stderr, "server: failed to bind\n");
 		return 2;
 	}
-
+	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
 	freeaddrinfo(servinfo); // all done with this structure
 
 	if (listen(sockfd, BACKLOG) == -1) {
@@ -217,7 +217,7 @@ int main(void){
 		inet_ntop(their_addr.ss_family,
 			get_in_addr((struct sockaddr *)&their_addr),
 			s, sizeof s);
-		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in)their_addr).sin_port);
+		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in*)(&their_addr))->sin_port);
 #ifndef DEBUGFORK
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
