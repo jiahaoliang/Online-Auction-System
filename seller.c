@@ -32,44 +32,32 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 //read sellerPass.txt
-int readSellerPass(const char *filename, struct userNode *node){
+int readSellerPass(const char *filename, struct userNode **node){
 	FILE *fp = fopen(filename, "r");
-	char buffer[REG_TXT_LINE_LEN] = {0};
-	char *p = buffer, *t = buffer;
+	char buffer[PASS_TXT_LINE_LEN] = {0};
+	char *p = buffer;
 
 	if (fp==NULL) return 1;
 
 	/*read a line from sellerPass.txt and parse it*/
 	if (fgets(buffer, PASS_TXT_LINE_LEN, fp) != NULL){
 
-		if ((t = strchr(p, ' ')) != NULL){		//Locate first occurrence of ' '(space) in string
-			*t++ = '\0';
-			if ((node->type = atoi(p)) != 2){
-				fprintf(stderr,"Not a seller: %d %s %s %s\n",node->type,node->name,node->password,p);
-				return 1;
-			}
-			p = t;
-		}
-		if ((t = strchr(p, ' ')) != NULL){		//Locate second occurrence of ' '(space) in string
-			*t++ = '\0';
-			strcpy (node->name,p);
-			p = t;
-		}
-		if ((t = strchr(p, ' ')) != NULL){		//Locate third occurrence of ' '(space) in string
-					*t++ = '\0';
-					strcpy (node->password,p);
-					p = t;
-				}
+		p = buffer;
 
-		t = strchr(p, '\n');		//Locate occurrence of '\n' in string
-		*t = '\0';
-
-		//Each bank account is a 9 digit string and should start with “4519”.
-		//For example “4519 43 546” is a valid bank account.
+		p = strtok(buffer, " ");
+		if ((node->type = atoi(p)) != 2){
+			fprintf(stderr,"Not a seller: %d %s %s %s\n",(*node)->type,(*node)->name,(*node)->password,p);
+			return 1;
+		}
+		p = strtok(NULL, " ");
+		strcpy ((*node)->name,p);
+		p = strtok(NULL, " ");
+		strcpy ((*node)->password,p);
+		p = strtok(NULL, "\n");
 		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
-			strcpy (node->accountNum,p);
+			strcpy ((*node)->accountNum,p);
 		else{
-			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",node->name,node->password,p);
+			fprintf(stderr,"%s %s %s %s\n","Wrong Bank Account:",(*node)->name,(*node)->password,p);
 			return 1;
 		}
 	}

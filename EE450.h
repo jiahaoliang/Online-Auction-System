@@ -8,6 +8,10 @@
 #ifndef EE450_H_
 #define EE450_H_
 
+#define DEBUG
+
+#define MAXDATASIZE 100 // max number of bytes we can get at once
+
 #define NAME_MAX_LEN 10		//max length of a user name in Registration.txt
 #define PW_MX_LEN 10		//max length of a password in Registration.txt
 #define ACCOUNT_NUM_MAX_LEN 10	//max length of an account number in Registration.txt
@@ -28,9 +32,12 @@
 
 struct userNode{
 	int type;	//default 0, unspecified; set 1 as bidder; set 2 as seller
+	int userIndex; //identify different users, example seller1, seller 2, bidder 1, bidder2, etc.
 	char name[NAME_MAX_LEN];
 	char password[PW_MX_LEN];
 	char accountNum[ACCOUNT_NUM_MAX_LEN];
 };
+
+int findByName(void* listObj, void* keyword);
 
 #endif /* EE450_H_ */
