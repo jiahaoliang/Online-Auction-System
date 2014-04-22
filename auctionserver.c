@@ -26,6 +26,7 @@
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
 #define BACKLOG 10	 // how many pending connections queue will hold
 
+int g_userIndex = 0;	//global variable, indicate the index of user, such as user1, user2, etc
 
 /*
  * read Registration.txt and parse all information then store them
@@ -96,6 +97,8 @@ char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLi
 		strcpy(newUser->name,strtok(NULL," "));
 		strcpy(newUser->password,strtok(NULL," "));
 		str = strtok(NULL, "\n");
+		printf("Phase 1: Authentication request. User%d: Username: %s Password: %s Bank Account: %s ",
+				++g_userIndex, newUser->name, newUser->password, str);
 		if (strlen(str) == 9 && strncmp(str,"4519",4) == 0)
 			strcpy (newUser->accountNum,str);
 		else{
@@ -188,7 +191,9 @@ int main(void){
 		fprintf(stderr, "server: failed to bind\n");
 		return 2;
 	}
-	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
+	printf("Phase 1: Auction server has TCP port number %d and IP address %s\n",
+			((struct sockaddr_in*)(p->ai_addr))->sin_port, s);
+//	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
 	freeaddrinfo(servinfo); // all done with this structure
 
 	if (listen(sockfd, BACKLOG) == -1) {
@@ -214,40 +219,43 @@ int main(void){
 			continue;
 		}
 
+//#ifndef DEBUGFORK
+//		if (!fork()) { // this is the child process
+//			close(sockfd); // child doesn't need the listener
+//#endif
+		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+	#ifdef DEBUG
+		printf("recv: %s\n",buf);
+//			puts("press Enter key..");
+//			getchar();
+	#endif
+		//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
+		strcpy(buf,processLogin(buf, reg_list, accept_list));	//process Login# command, and put the response command to buf
+
 		inet_ntop(their_addr.ss_family,
 			get_in_addr((struct sockaddr *)&their_addr),
 			s, sizeof s);
-		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in*)(&their_addr))->sin_port);
-#ifndef DEBUGFORK
-		if (!fork()) { // this is the child process
-			close(sockfd); // child doesn't need the listener
-#endif
-			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
-			    perror("recv");
-			    exit(1);
-			}
-		#ifdef DEBUG
-			printf("recv: %s\n",buf);
-//			puts("press Enter key..");
-//			getchar();
-		#endif
-			//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
-			strcpy(buf,processLogin(buf, reg_list, accept_list));	//process Login# command, and put the response command to buf
-		#ifdef DEBUG
-			puts(buf);
-		#endif
-			if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
-				perror("send");
-		#ifdef DEBUG
-			printf("send: %s\n",buf);
-		#endif
-		#ifndef DEBUGFORK
-			close(new_fd);
-			exit(0);
+//		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in*)(&their_addr))->sin_port);
+		printf("User IP Addr: %s. Authorized: %s\n", s, buf);
+	#ifdef DEBUG
+		puts(buf);
+	#endif
 
-		}
-		#endif
-		close(new_fd);  // parent doesn't need this
+		if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
+			perror("send");
+	#ifdef DEBUG
+		printf("send: %s\n",buf);
+	#endif
+//		#ifndef DEBUGFORK
+//			close(new_fd);
+//			exit(0);
+//
+//		}
+//		#endif
+		close(new_fd);
 	}
 
 	return 0;
