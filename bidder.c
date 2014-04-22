@@ -19,6 +19,8 @@
 
 #include "EE450.h"
 
+int g_bidderIndex = 0;	//Global variable, indicate bidder1 or bidder2
+
 // get sockaddr,
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -47,6 +49,7 @@ int readBidderPass(const char *filename, struct userNode **node){
 			fprintf(stderr,"Not a bidder: %d %s %s %s\n",(*node)->type,(*node)->name,(*node)->password,p);
 			return 1;
 		}
+		(*node)->userIndex = ++g_bidderIndex;
 		p = strtok(NULL, " ");
 		strcpy ((*node)->name,p);
 		p = strtok(NULL, " ");
@@ -125,8 +128,8 @@ int main(void)
 
 	freeaddrinfo(servinfo); // all done with this structure
 
-	//Login cammand: "Login#username password bankaccount"
-	sprintf(buf,"Login#%s %s %s", bidderInfo_1->name, bidderInfo_1->password, bidderInfo_1->accountNum);
+	//Login cammand: "Login#type userIndex username password bankaccount"
+	sprintf(buf,"Login#%d %d %s %s %s",bidderInfo_1->type, bidderInfo_1->userIndex, bidderInfo_1->name, bidderInfo_1->password, bidderInfo_1->accountNum);
 #ifdef DEBUG
 	puts(buf);
 #endif

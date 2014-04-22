@@ -32,6 +32,7 @@
 
 struct userNode{
 	int type;	//default 0, unspecified; set 1 as bidder; set 2 as seller
+	int userIndex; //identify different users, example seller1, seller 2, bidder 1, bidder2, etc.
 	char name[NAME_MAX_LEN];
 	char password[PW_MX_LEN];
 	char accountNum[ACCOUNT_NUM_MAX_LEN];

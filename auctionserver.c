@@ -76,7 +76,7 @@ int compareUser(struct userNode *user_1, struct userNode *user_2){
  * char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLinkedList *accept_list);
  * usage:	deal with the Login# command. If the user information matches any user in reg_list,
  * 			copy it into accept_list, return "Accepted#"
- * input: 	char* buf = "Login#username password bankaccount"
+ * input: 	char* buf = "Login#type userIndex username password bankaccount"
  * output:	 1. "Accepted#", if successful;
  * 		  	 2. "Rejected#", if unsuccessful;
  */
@@ -84,20 +84,22 @@ char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLi
 	char *str = NULL, *accept = "Accepted#", *reject = "Rejected#";
 	struct userNode *newUser = malloc(sizeof(struct userNode));
 	memset(newUser,0,sizeof(struct userNode));
-#ifdef DEBUG
-	puts("bp:processLogin:");
-#endif
-	if(strcmp(str = strtok(buf,"#"), "Login") == 0){
-#ifdef DEBUG
-	puts(str);
-#endif
+	#ifdef DEBUG
+		puts("bp:processLogin:");
+	#endif
+		if(strcmp(str = strtok(buf,"#"), "Login") == 0){
+	#ifdef DEBUG
+		puts(str);
+	#endif
+		newUser->type = atoi(strtok(NULL," "));
+		newUser->userIndex = atoi(strtok(NULL," "));
 		strcpy(newUser->name,strtok(NULL," "));
 		strcpy(newUser->password,strtok(NULL," "));
 		str = strtok(NULL, "\n");
 		if (strlen(str) == 9 && strncmp(str,"4519",4) == 0)
 			strcpy (newUser->accountNum,str);
 		else{
-			fprintf(stderr,"Wrong Bank Account: Login#%s %s %s\n",newUser->name,newUser->password,str);
+			fprintf(stderr,"Wrong Bank Account: Login#%d %d %s %s %s\n",newUser->type,newUser->userIndex,newUser->name,newUser->password,str);
 			return reject;
 		}
 	}
@@ -215,7 +217,7 @@ int main(void){
 		inet_ntop(their_addr.ss_family,
 			get_in_addr((struct sockaddr *)&their_addr),
 			s, sizeof s);
-		printf("server: got connection from %s\n", s);
+		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in)their_addr).sin_port);
 #ifndef DEBUGFORK
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
@@ -230,7 +232,7 @@ int main(void){
 //			getchar();
 		#endif
 			//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
-			strcpy(buf,processLogin(buf, reg_list, accept_list));
+			strcpy(buf,processLogin(buf, reg_list, accept_list));	//process Login# command, and put the response command to buf
 		#ifdef DEBUG
 			puts(buf);
 		#endif
