@@ -32,7 +32,7 @@ int listAppend(struct singlyLinkedList *list, void *newObj){
 //This function will return the first node to which the supplied function pointer returns 0
 struct listNode* listSearch(struct singlyLinkedList *list, int (*func)(void*, void*),void *keyword){
 	struct listNode* p;
-	for(p=NULL;p!=list->tail;p=p->next){
+	for(p=list->head;p!=list->tail;p=p->next){
 		if(func(p->obj, keyword)==0) return p;
 	}
 	return NULL;

@@ -19,7 +19,7 @@
 
 #include "EE450.h"
 
-// get sockaddr, IPv4 or IPv6:
+// get sockaddr,
 void *get_in_addr(struct sockaddr *sa)
 {
 	if (sa->sa_family == AF_INET) {
@@ -89,7 +89,7 @@ int main(void)
 
 	/*phase 1: Authorization*/
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 
 	if ((rv = getaddrinfo(HOSTNAME, PORT_S_P1, &hints, &servinfo)) != 0) {
@@ -134,6 +134,7 @@ int main(void)
 		    perror("recv");
 		    exit(1);
 		}
+	sleep(1); //sleep 1 second
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
 	    exit(1);

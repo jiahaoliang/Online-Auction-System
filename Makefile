@@ -1,10 +1,10 @@
 all: auctionserver bidder
 
 auctionserver: auctionserver.o singlyLinkedList.o EE450.o
-	gcc -o auctionserver auctionserver.o singlyLinkedList.o -lsocket -lnsl -lresolv -g
+	gcc -o auctionserver auctionserver.o singlyLinkedList.o EE450.o -lsocket -lnsl -lresolv -g
 	
 bidder: bidder.o singlyLinkedList.o EE450.o
-	gcc -o bidder bidder.o singlyLinkedList.o -lsocket -lnsl -lresolv -g
+	gcc -o bidder bidder.o singlyLinkedList.o EE450.o -lsocket -lnsl -lresolv -g
 
 auctionserver.o: auctionserver.c singlyLinkedList.h EE450.h
 	gcc -g -c -Wall auctionserver.c

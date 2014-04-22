@@ -20,10 +20,10 @@
 #include "singlyLinkedList.h"
 #include "EE450.h"
 
+#define DEBUGFORK
+
 #define MAXUSER 4
-
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
-
 #define BACKLOG 10	 // how many pending connections queue will hold
 
 
@@ -84,8 +84,13 @@ char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLi
 	char *str = NULL, *accept = "Accepted#", *reject = "Rejected#";
 	struct userNode *newUser = malloc(sizeof(struct userNode));
 	memset(newUser,0,sizeof(struct userNode));
-
+#ifdef DEBUG
+	puts("bp:processLogin:");
+#endif
 	if(strcmp(str = strtok(buf,"#"), "Login") == 0){
+#ifdef DEBUG
+	puts(str);
+#endif
 		strcpy(newUser->name,strtok(NULL," "));
 		strcpy(newUser->password,strtok(NULL," "));
 		str = strtok(NULL, "\n");
@@ -96,7 +101,7 @@ char* processLogin(char* buf, struct singlyLinkedList *reg_list, struct singlyLi
 			return reject;
 		}
 	}
-	struct userNode *sameNameUser = (struct userNode *)(listSearch(reg_list, findByName, (void*)newUser->name)->obj);
+	struct userNode *sameNameUser = (struct userNode *)(listSearch(reg_list, findByName, (void*)(newUser->name))->obj);
 	if (sameNameUser != NULL){
 		if (compareUser(newUser, sameNameUser)){
 			fprintf(stderr,"No matching user: Login#%s %s %s\n",newUser->name,newUser->password,str);
@@ -151,7 +156,7 @@ int main(void){
 	}
 
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;	//don't care ipv4 or ipv6
+	hints.ai_family = AF_INET;	//ipv4
 	hints.ai_socktype = SOCK_STREAM;	//TCP socket
 	hints.ai_flags = AI_PASSIVE; // use my IP
 	if ((rv = getaddrinfo(NULL, PORT_S_P1, &hints, &servinfo)) != 0) {
@@ -189,13 +194,13 @@ int main(void){
 		exit(1);
 	}
 
-	sa.sa_handler = sigchld_handler; // reap all dead processes
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
-	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-		perror("sigaction");
-		exit(1);
-	}
+//	sa.sa_handler = sigchld_handler; // reap all dead processes
+//	sigemptyset(&sa.sa_mask);
+//	sa.sa_flags = SA_RESTART;
+//	if (sigaction(SIGINT, &sa, NULL) == -1) {
+//		perror("sigaction");
+//		exit(1);
+//	}
 
 	printf("server: waiting for connections...\n");
 
@@ -211,24 +216,35 @@ int main(void){
 			get_in_addr((struct sockaddr *)&their_addr),
 			s, sizeof s);
 		printf("server: got connection from %s\n", s);
-
+#ifndef DEBUGFORK
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
+#endif
 			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 			    perror("recv");
 			    exit(1);
 			}
 		#ifdef DEBUG
-			puts(buf);
+			printf("recv: %s\n",buf);
+//			puts("press Enter key..");
+//			getchar();
 		#endif
 			//04/15 03:47 continue to work here, gonna develop codes deal with the Login# command
-			buf = processLogin(buf, reg_list, accept_list);
+			strcpy(buf,processLogin(buf, reg_list, accept_list));
+		#ifdef DEBUG
+			puts(buf);
+		#endif
 			if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 				perror("send");
-
+		#ifdef DEBUG
+			printf("send: %s\n",buf);
+		#endif
+		#ifndef DEBUGFORK
 			close(new_fd);
 			exit(0);
+
 		}
+		#endif
 		close(new_fd);  // parent doesn't need this
 	}
 
