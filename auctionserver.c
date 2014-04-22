@@ -20,7 +20,7 @@
 #include "singlyLinkedList.h"
 #include "EE450.h"
 
-#define DEBUGFORK
+//#define DEBUGFORK
 
 #define MAXUSER 4
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
@@ -191,6 +191,9 @@ int main(void){
 		fprintf(stderr, "server: failed to bind\n");
 		return 2;
 	}
+
+	inet_ntop(p->ai_family,	get_in_addr(p->ai_addr),
+				s, sizeof s);
 	printf("Phase 1: Auction server has TCP port number %d and IP address %s\n",
 			((struct sockaddr_in*)(p->ai_addr))->sin_port, s);
 //	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);

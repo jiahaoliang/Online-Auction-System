@@ -8,6 +8,11 @@
 #ifndef EE450_H_
 #define EE450_H_
 
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #define DEBUG
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once
@@ -36,6 +41,15 @@ struct userNode{
 	char name[NAME_MAX_LEN];
 	char password[PW_MX_LEN];
 	char accountNum[ACCOUNT_NUM_MAX_LEN];
+};
+
+struct acceptedUserNode{
+	int type;	//default 0, unspecified; set 1 as bidder; set 2 as seller
+	int userIndex; //identify different users, example seller1, seller 2, bidder 1, bidder2, etc.
+	char name[NAME_MAX_LEN];
+	char password[PW_MX_LEN];
+	char accountNum[ACCOUNT_NUM_MAX_LEN];
+	struct sockaddr *sa;
 };
 
 int findByName(void* listObj, void* keyword);
