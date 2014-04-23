@@ -193,7 +193,9 @@ int main(void)
 	port_S_P2[numbytes] = '\0';
 	printf("Phase 1: Auction Server has IP Address:%s and PreAuction TCP Port Number:%s\n", serverIP, port_S_P2);
 
+	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1 end.
 	close(sockfd);
+
 	if(cpid){
 		//parent process
 		puts("End of Phase 1 for <Seller2>.");
@@ -205,7 +207,7 @@ int main(void)
 
 	/**************************************************************************************************/
 	/*phase 2: PreAuction*/
-
+	sleep(5);	//wait until server finished phase 1
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
@@ -253,17 +255,24 @@ int main(void)
 				return 1;
 			}
 		sleep(2);
-		puts("Phase 2: <Seller2> send item lists.");
+		strcpy(buf, "Phase 2: <Seller2> send item lists.");
+		puts(buf);
 	}else{
 		//child process
 		if ((fp = fopen("itemList1.txt", "r")) == NULL){	//open itemList1.txt
 						perror("itemList1.txt");
 						return 1;}
-		puts("Phase 2: <Seller1> send item lists.");
+		strcpy(buf, "Phase 2: <Seller1> send item lists.");
+		puts(buf);
 	}
+	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+		    perror("send");
+		    exit(1);
+		}
 
 	//read and send seller name
 	fgets(buf, sizeof(buf), fp);
+	buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("send");
 		    exit(1);
@@ -272,6 +281,7 @@ int main(void)
 
 	//read one line and send per loop
 	while(fgets(buf, sizeof(buf), fp) != NULL){
+		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
 		if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 			    perror("send");
 			    exit(1);

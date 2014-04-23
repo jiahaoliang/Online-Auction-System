@@ -175,6 +175,8 @@ int main(void)
 	buf[numbytes] = '\0';
 	printf("Phase 1: Login request reply: %s .\n", buf);
 //	printf("client: received '%s'\n",buf);
+
+	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1
 	close(sockfd);
 	/*End of phase 1*/
 

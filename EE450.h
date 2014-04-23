@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 #define PORTNUM_LEN 6	//"65566\0", 6 char in total
@@ -51,7 +51,6 @@ struct acceptedUserNode{
 	char password[PW_MX_LEN];
 	char accountNum[ACCOUNT_NUM_MAX_LEN];
 	char ip_addr[INET6_ADDRSTRLEN];	//ip address of accepted user, can be either IPv4 or IPv6
-	struct singlyLinkedList *itemlist;
 };
 
 int findByName(void* listObj, void* keyword);

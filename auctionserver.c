@@ -348,7 +348,12 @@ int main(void){
 			continue;
 		}
 
-		puts("Phase 2: <Seller#> send item lists.");
+		// recv "Phase 2: <Seller#> send item lists.";
+		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		puts(buf);
 
 		//receive user name
 		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
