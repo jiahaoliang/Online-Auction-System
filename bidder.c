@@ -160,11 +160,14 @@ int main(void)
 #ifdef DEBUG
 	puts(buf);
 #endif
+	//send Login command to server
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("recv");
 		    exit(1);
 		}
 	sleep(1); //sleep 1 second
+
+	//receive Accepted# or Rejected# command from server
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
 	    exit(1);

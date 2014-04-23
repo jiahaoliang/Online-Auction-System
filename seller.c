@@ -79,6 +79,8 @@ int main(void)
 	char s[INET_ADDRSTRLEN];
 	struct sockaddr_in sa;	//store local address
 	int sa_len = sizeof(sa);
+	char serverIP[INET6_ADDRSTRLEN];
+	char port_S_P2[6]= {0} ;	//variable to store server port number for phase 2
 
 	int cpid;
 
@@ -160,19 +162,45 @@ int main(void)
 #ifdef DEBUG
 	puts(buf);
 #endif
+	//send Login command to server
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("recv");
 		    exit(1);
 		}
 	sleep(1); //sleep 1 second
+
+	//receive Accepted# or Rejected# command from server
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
 	    exit(1);
 	}
 	buf[numbytes] = '\0';
 	printf("Phase 1: Login request reply: %s .\n", buf);
-//	printf("client: received '%s'\n",buf);
+
+	//receive server IP
+	if ((numbytes = recv(sockfd, serverIP, INET6_ADDRSTRLEN, 0)) == -1) {
+	    perror("recv");
+	    exit(1);
+	}
+	serverIP[numbytes] = '\0';
+
+	//receive server Port Number for phase 2
+	if ((numbytes = recv(sockfd, port_S_P2, sizeof port_S_P2, 0)) == -1) {
+	    perror("recv");
+	    exit(1);
+	}
+	port_S_P2[numbytes] = '\0';
+	printf("Phase 1: Auction Server has IP Address:%s and PreAuction TCP Port Number:%s\n", serverIP, port_S_P2);
+
 	close(sockfd);
+	if(cpid){
+		//parent process
+		puts("End of Phase 1 for <Seller2>.");
+	}else{
+		//child process
+		puts("End of Phase 1 for <Seller1>.");
+	}
+
 	/*End of phase 1*/
 
 
