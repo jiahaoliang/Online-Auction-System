@@ -92,6 +92,7 @@ char* processLogin(char* buf, struct acceptedUserNode* newUser, struct singlyLin
 	#ifdef DEBUG
 		puts(str);
 	#endif
+		//store user info into struct
 		newUser->type = atoi(strtok(NULL," "));
 		newUser->userIndex = atoi(strtok(NULL," "));
 		strcpy(newUser->name,strtok(NULL," "));
@@ -106,6 +107,7 @@ char* processLogin(char* buf, struct acceptedUserNode* newUser, struct singlyLin
 			return reject;
 		}
 	}
+
 	struct userNode *sameNameUser = (struct userNode *)(listSearch(reg_list, findByName, (void*)(newUser->name))->obj);
 	if (sameNameUser != NULL){
 		if (compareUser((struct userNode *)newUser, sameNameUser)){
@@ -145,7 +147,7 @@ int main(void){
 	socklen_t sin_size;
 	struct sigaction sa;
 	int yes=1;
-	char s[INET6_ADDRSTRLEN];
+	char s[INET6_ADDRSTRLEN], hostIP[INET6_ADDRSTRLEN];
 	int i, rv;
 
 	struct singlyLinkedList *reg_list, *accept_list;
@@ -195,10 +197,9 @@ int main(void){
 	}
 
 
-	inet_ntop(p->ai_family,	get_in_addr(p->ai_addr),
-				s, sizeof s);
+	inet_ntop(p->ai_family,	get_in_addr(p->ai_addr), hostIP, sizeof hostIP);
 	printf("Phase 1: Auction server has TCP port number %d and IP address %s\n",
-			((struct sockaddr_in*)(p->ai_addr))->sin_port, s);
+			((struct sockaddr_in*)(p->ai_addr))->sin_port, hostIP);
 //	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
 	freeaddrinfo(servinfo); // all done with this structure
 
@@ -229,6 +230,7 @@ int main(void){
 //		if (!fork()) { // this is the child process
 //			close(sockfd); // child doesn't need the listener
 //#endif
+		//receive Login command from users
 		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 			perror("recv");
 			exit(1);
@@ -248,15 +250,31 @@ int main(void){
 //		printf("server: got connection from %s Port:%d\n", s, ((struct sockaddr_in*)(&their_addr))->sin_port);
 		printf("Phase 1: Authentication request. User%d: Username:%s Password:%s "
 				"Bank Account:%s User IP Addr:%s Authorized:%s\n",
-				++g_userIndex, newUser->name, newUser->password, newUser->accountNum,
-				s, buf);
-		if(!strcmp(buf, "Accepted#")) strcpy(newUser->ip_addr, s);
+				++g_userIndex, newUser->name, newUser->password, newUser->accountNum, s, buf);
 //		printf("User IP Addr: %s. Authorized: %s\n", s, buf);
 	#ifdef DEBUG
 		puts(buf);
 	#endif
+		//send Accepted# or Rejected# command to user
 		if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 			perror("send");
+		//Upon acceptance the server will
+		//save the IP address of the accepted user and will bind it to its username for future reference.
+		if(!strcmp(buf, "Accepted#")){
+			strcpy(newUser->ip_addr, s);
+			//if newUser is a seller, send the IP and PreAuction Port number to the it
+			if(newUser->type == 2){
+				//send IP address
+				if (send(new_fd, hostIP, INET6_ADDRSTRLEN, 0) == -1)
+					perror("send");
+				//send Port Number
+				if (send(new_fd, PORT_S_P2, sizeof(PORT_S_P2), 0) == -1)
+					perror("send");
+				printf("Phase 1: Auction Server IP Address:%s "
+						"PreAuction Port Number:%s sent to the <Seller%d>\n", hostIP, PORT_S_P2, newUser->userIndex);
+			}
+		}
+
 	#ifdef DEBUG
 		printf("send: %s\n",buf);
 	#endif
