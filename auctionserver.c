@@ -146,7 +146,7 @@ int main(void){
 	struct sigaction sa;
 	int yes=1;
 	char s[INET6_ADDRSTRLEN];
-	int rv;
+	int i, rv;
 
 	struct singlyLinkedList *reg_list, *accept_list;
 
@@ -171,7 +171,7 @@ int main(void){
 		return 1;
 	}
 
-
+	/*phase 1: Authorization*/
 	// loop through all the results and bind to the first we can
 	for(p = servinfo; p != NULL; p = p->ai_next) {
 		if ((sockfd = socket(p->ai_family, p->ai_socktype,
@@ -217,7 +217,7 @@ int main(void){
 
 	printf("server: waiting for connections...\n");
 
-	while(1) {  // main accept() loop
+	for(i=0;i<MAXUSER;i++) {  // main accept() loop
 		sin_size = sizeof their_addr;
 		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 		if (new_fd == -1) {
@@ -268,6 +268,10 @@ int main(void){
 //		#endif
 		close(new_fd);
 	}
+	puts("End of Phase 1 for Auction Server");
+	/*End of phase 1*/
+
+
 
 	return 0;
 

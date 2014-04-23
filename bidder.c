@@ -172,8 +172,10 @@ int main(void)
 	buf[numbytes] = '\0';
 	printf("Phase 1: Login request reply: %s .\n", buf);
 //	printf("client: received '%s'\n",buf);
-
 	close(sockfd);
+	/*End of phase 1*/
+
+
 
 	return 0;
 }
