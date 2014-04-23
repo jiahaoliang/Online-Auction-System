@@ -23,6 +23,8 @@
 //#define DEBUGFORK
 
 #define MAXUSER 4
+#define MAXSELLER 2
+#define MAXBIDDER 2
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
 #define BACKLOG 10	 // how many pending connections queue will hold
 
@@ -285,11 +287,90 @@ int main(void){
 //		}
 //		#endif
 		close(new_fd);
+		close(sockfd);
 	}
 	puts("End of Phase 1 for Auction Server");
 	/*End of phase 1*/
 
+	/*************************************************************************************************/
 
+	/*phase 2: PreAuction*/
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;	//ipv4
+	hints.ai_socktype = SOCK_STREAM;	//TCP socket
+	gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
+
+	if ((rv = getaddrinfo(buf, PORT_S_P2, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+				perror("server: socket");
+				continue; }
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(int)) == -1) {
+	            perror("setsockopt");
+	            exit(1); }
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("server: bind");
+			continue; }
+		break;
+	}
+
+	if (p == NULL){
+		fprintf(stderr, "server: failed to bind\n");
+		return 2;
+	}
+
+
+	inet_ntop(p->ai_family,	get_in_addr(p->ai_addr), hostIP, sizeof hostIP);
+	printf("Phase 2: Auction Server IP Address:%s PreAuction TCP Port Number:%d .\n",
+			hostIP, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
+//	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if (listen(sockfd, BACKLOG) == -1) {
+		perror("listen");
+		exit(1);
+	}
+
+	for(i=0;i<MAXSELLER;i++){
+
+		sin_size = sizeof their_addr;
+		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+		if (new_fd == -1) {
+			perror("accept");
+			continue;
+		}
+
+		puts("Phase 2: <Seller#> send item lists.");
+
+		//receive user name
+		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		puts(buf);
+
+		do{
+			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+			puts(buf);
+			if(!strcmp("ListEnd#",buf)) break;
+		}while(1);
+
+		close(new_fd);
+	}
+
+	/*End of phase 2*/
+	/*************************************************************************************************/
 
 	return 0;
 

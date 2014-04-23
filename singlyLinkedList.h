@@ -22,7 +22,7 @@ struct singlyLinkedList{
 	struct listNode *tail;
 };
 
-int listInitialize(struct singlyLinkedList *list);
+int listInitialize(struct singlyLinkedList **p_list);
 int listAppend(struct singlyLinkedList *list, void *newObj);
 struct listNode* listSearch(struct singlyLinkedList *list, int (*func)(void*, void*),void *keyword);
 #endif /* SINGLYLINKEDLIST_H_ */

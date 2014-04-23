@@ -103,7 +103,7 @@ int main(void)
 				perror("bidderPass1.txt");
 				return 1;
 			}
-		sleep(2);	//child sleep 2s, wait until parent finished
+		sleep(2);	//parent sleep 2s, wait until child finished
 	}else{
 		//child process
 		if (readBidderPass(1, "bidderPass1.txt", &bidderInfo) != 0){	//read bidderpass1.txt and load user information
@@ -162,7 +162,7 @@ int main(void)
 #endif
 	//send Login command to server
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-		    perror("recv");
+		    perror("send");
 		    exit(1);
 		}
 	sleep(1); //sleep 1 second

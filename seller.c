@@ -80,7 +80,8 @@ int main(void)
 	struct sockaddr_in sa;	//store local address
 	int sa_len = sizeof(sa);
 	char serverIP[INET6_ADDRSTRLEN];
-	char port_S_P2[6]= {0} ;	//variable to store server port number for phase 2
+	char port_S_P2[PORTNUM_LEN]= {0} ;	//variable to store server port number for phase 2
+	FILE *fp = NULL;
 
 	int cpid;
 
@@ -105,7 +106,7 @@ int main(void)
 				perror("sellerPass1.txt");
 				return 1;
 			}
-		sleep(2);	//child sleep 2s, wait until parent finished
+		sleep(2);	//parent sleep 2s, wait until child finished
 	}else{
 		//child process
 		if (readSellerPass(1, "sellerPass1.txt", &sellerInfo) != 0){	//read sellerpass1.txt and load user information
@@ -164,7 +165,7 @@ int main(void)
 #endif
 	//send Login command to server
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-		    perror("recv");
+		    perror("send");
 		    exit(1);
 		}
 	sleep(1); //sleep 1 second
@@ -200,10 +201,94 @@ int main(void)
 		//child process
 		puts("End of Phase 1 for <Seller1>.");
 	}
-
 	/*End of phase 1*/
 
+	/**************************************************************************************************/
+	/*phase 2: PreAuction*/
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if ((rv = getaddrinfo(serverIP, port_S_P2, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
+	printf("Phase 2: Auction Server has IP Address:%s PreAuction Port Number:%s\n", serverIP, port_S_P2);
+
+	// loop through all the results and connect to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+			perror("client: socket");
+			continue;
+		}
+
+		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("client: connect");
+			continue;
+		}
+
+		break;
+	}
+
+	if (p == NULL) {
+		fprintf(stderr, "client: failed to connect\n");
+		return 2;
+	}
 
 
+#ifdef DEBUG
+	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+			s, sizeof s);
+	printf("client: connecting to %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
+#endif
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if(cpid){
+		//parent process
+		if ((fp = fopen("itemList2.txt", 'r')) == NULL){	//open itemList2.txt
+				perror("itemList2.txt");
+				return 1;
+			}
+		sleep(2);
+		puts("Phase 2: <Seller2> send item lists.");
+	}else{
+		//child process
+		if ((fp = fopen("itemList1.txt", 'r')) == NULL){	//open itemList1.txt
+						perror("itemList1.txt");
+						return 1;}
+		puts("Phase 2: <Seller1> send item lists.");
+	}
+
+	//read and send seller name
+	fgets(buf, sizeof(buf), fp);
+	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+		    perror("send");
+		    exit(1);
+		}
+	puts(buf);
+
+	//read one line and send per loop
+	while(fgets(buf, sizeof(buf), fp) != NULL){
+		if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+			    perror("send");
+			    exit(1);
+			}
+		puts(buf);
+	}
+
+	//indicate end of file
+	strcpy(buf, "ListEnd#");
+	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+		    perror("send");
+		    exit(1);
+		}
+#ifdef DEBUG
+	puts(buf);
+#endif
+	/*End of phase 2*/
+	/**************************************************************************************************/
 	return 0;
 }
