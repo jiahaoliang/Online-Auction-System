@@ -25,4 +25,4 @@ EE450.o: EE450.c EE450.h
 	gcc -g -c -Wall EE450.c
 
 clean:
-	rm -f *.o auctionserver bidder
+	rm -f *.o auctionserver bidder seller

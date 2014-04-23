@@ -248,7 +248,7 @@ int main(void)
 
 	if(cpid){
 		//parent process
-		if ((fp = fopen("itemList2.txt", 'r')) == NULL){	//open itemList2.txt
+		if ((fp = fopen("itemList2.txt", "r")) == NULL){	//open itemList2.txt
 				perror("itemList2.txt");
 				return 1;
 			}
@@ -256,7 +256,7 @@ int main(void)
 		puts("Phase 2: <Seller2> send item lists.");
 	}else{
 		//child process
-		if ((fp = fopen("itemList1.txt", 'r')) == NULL){	//open itemList1.txt
+		if ((fp = fopen("itemList1.txt", "r")) == NULL){	//open itemList1.txt
 						perror("itemList1.txt");
 						return 1;}
 		puts("Phase 2: <Seller1> send item lists.");

@@ -287,9 +287,9 @@ int main(void){
 //		}
 //		#endif
 		close(new_fd);
-		close(sockfd);
 	}
 	puts("End of Phase 1 for Auction Server");
+	close(sockfd);
 	/*End of phase 1*/
 
 	/*************************************************************************************************/
