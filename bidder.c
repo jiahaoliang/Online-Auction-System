@@ -53,12 +53,13 @@ int readBidderPass(int bidderIndex, const char *filename, struct userNode **node
 		p = strtok(NULL, " ");
 		strcpy ((*node)->password,p);
 		p = strtok(NULL, "\n");
-		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
-			strcpy ((*node)->accountNum,p);
-		else{
-			fprintf(stderr,"Wrong Bank Account: %s %s %s\n",(*node)->name,(*node)->password,p);
-			return 1;
-		}
+		strcpy ((*node)->accountNum,p);
+//		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
+//			strcpy ((*node)->accountNum,p);
+//		else{
+//			fprintf(stderr,"Wrong Bank Account: %s %s %s\n",(*node)->name,(*node)->password,p);
+//			return 1;
+//		}
 
 	}
 	else{
@@ -77,6 +78,7 @@ int main(void)
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET_ADDRSTRLEN];
+	char* header;
 	struct sockaddr_in sa;	//store local address
 	int sa_len = sizeof(sa);
 
@@ -103,12 +105,14 @@ int main(void)
 				perror("bidderPass1.txt");
 				return 1;
 			}
-		sleep(2);	//child sleep 2s, wait until parent finished
+		header = "Bidder2";
+		sleep(2);	//parent sleep 2s, wait until child finished
 	}else{
 		//child process
 		if (readBidderPass(1, "bidderPass1.txt", &bidderInfo) != 0){	//read bidderpass1.txt and load user information
 						perror("bidderPass1.txt");
 						return 1;}
+		header = "Bidder1";
 	}
 
 	// loop through all the results and connect to the first we can
@@ -161,8 +165,9 @@ int main(void)
 	puts(buf);
 #endif
 	//send Login command to server
+	addheader(buf, header);
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-		    perror("recv");
+		    perror("send");
 		    exit(1);
 		}
 	sleep(1); //sleep 1 second
@@ -173,8 +178,11 @@ int main(void)
 	    exit(1);
 	}
 	buf[numbytes] = '\0';
+	removeheader(buf);
 	printf("Phase 1: Login request reply: %s .\n", buf);
 //	printf("client: received '%s'\n",buf);
+
+	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1
 	close(sockfd);
 	/*End of phase 1*/
 

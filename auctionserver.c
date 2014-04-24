@@ -23,6 +23,8 @@
 //#define DEBUGFORK
 
 #define MAXUSER 4
+#define MAXSELLER 2
+#define MAXBIDDER 2
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
 #define BACKLOG 10	 // how many pending connections queue will hold
 
@@ -235,6 +237,7 @@ int main(void){
 			perror("recv");
 			exit(1);
 		}
+		removeheader(buf);
 	#ifdef DEBUG
 		printf("recv: %s\n",buf);
 //			puts("press Enter key..");
@@ -256,19 +259,25 @@ int main(void){
 		puts(buf);
 	#endif
 		//send Accepted# or Rejected# command to user
+		addheader(buf, "Server");
 		if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 			perror("send");
 		//Upon acceptance the server will
 		//save the IP address of the accepted user and will bind it to its username for future reference.
+		removeheader(buf);
 		if(!strcmp(buf, "Accepted#")){
 			strcpy(newUser->ip_addr, s);
 			//if newUser is a seller, send the IP and PreAuction Port number to the it
 			if(newUser->type == 2){
 				//send IP address
-				if (send(new_fd, hostIP, INET6_ADDRSTRLEN, 0) == -1)
+				strcpy(buf, hostIP);
+				addheader(buf, "Server");
+				if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 					perror("send");
 				//send Port Number
-				if (send(new_fd, PORT_S_P2, sizeof(PORT_S_P2), 0) == -1)
+				strcpy(buf, PORT_S_P2);
+				addheader(buf, "Server");
+				if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 					perror("send");
 				printf("Phase 1: Auction Server IP Address:%s "
 						"PreAuction Port Number:%s sent to the <Seller%d>\n", hostIP, PORT_S_P2, newUser->userIndex);
@@ -287,9 +296,97 @@ int main(void){
 		close(new_fd);
 	}
 	puts("End of Phase 1 for Auction Server");
+	close(sockfd);
+	if(accept_list->num < MAXUSER) return 1;	//if any of user rejected, stop doing following phases
 	/*End of phase 1*/
 
+	/*************************************************************************************************/
 
+	/*phase 2: PreAuction*/
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;	//ipv4
+	hints.ai_socktype = SOCK_STREAM;	//TCP socket
+	gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
+
+	if ((rv = getaddrinfo(buf, PORT_S_P2, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+				perror("server: socket");
+				continue; }
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(int)) == -1) {
+	            perror("setsockopt");
+	            exit(1); }
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("server: bind");
+			continue; }
+		break;
+	}
+
+	if (p == NULL){
+		fprintf(stderr, "server: failed to bind\n");
+		return 2;
+	}
+
+
+	inet_ntop(p->ai_family,	get_in_addr(p->ai_addr), hostIP, sizeof hostIP);
+	printf("Phase 2: Auction Server IP Address:%s PreAuction TCP Port Number:%d .\n",
+			hostIP, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
+//	printf("server IP %s Port:%d\n", s, ((struct sockaddr_in*)(p->ai_addr))->sin_port);
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if (listen(sockfd, BACKLOG) == -1) {
+		perror("listen");
+		exit(1);
+	}
+
+	for(i=0;i<MAXSELLER;i++){
+
+		sin_size = sizeof their_addr;
+		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+		if (new_fd == -1) {
+			perror("accept");
+			continue;
+		}
+
+		// recv "Phase 2: <Seller#> send item lists.";
+		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		removeheader(buf);
+		puts(buf);
+		//receive user name
+		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		removeheader(buf);
+		puts(buf);
+
+		do{
+			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+			removeheader(buf);
+			if(!strcmp("ListEnd#",buf)) break;
+			puts(buf);
+		}while(1);
+
+		close(new_fd);
+	}
+
+	puts("End of Phase 2 for Auction Server");
+	/*End of phase 2*/
+	/*************************************************************************************************/
 
 	return 0;
 

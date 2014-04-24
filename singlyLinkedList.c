@@ -7,7 +7,14 @@
 
 #include "singlyLinkedList.h"
 
-
+/*
+ * Initialize a list, return 0 if successful
+ */
+int listInitialize(struct singlyLinkedList **p_list){
+	*p_list = malloc(sizeof(struct singlyLinkedList));
+	memset(*p_list, 0, sizeof(struct singlyLinkedList));
+	return (*p_list!=NULL)?0:1;
+}
 /*
  * Append a new listNode with newObj to the end of singlyLinkedList.
  * If successful, return 0. Otherwise, return 1;
