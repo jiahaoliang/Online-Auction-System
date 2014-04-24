@@ -297,6 +297,7 @@ int main(void){
 	}
 	puts("End of Phase 1 for Auction Server");
 	close(sockfd);
+	if(accept_list->num < MAXUSER) return 1;	//if any of user rejected, stop doing following phases
 	/*End of phase 1*/
 
 	/*************************************************************************************************/
@@ -383,6 +384,7 @@ int main(void){
 		close(new_fd);
 	}
 
+	puts("End of Phase 2 for Auction Server");
 	/*End of phase 2*/
 	/*************************************************************************************************/
 

@@ -53,12 +53,13 @@ int readSellerPass(int sellerIndex, const char *filename, struct userNode **node
 		p = strtok(NULL, " ");
 		strcpy ((*node)->password,p);
 		p = strtok(NULL, "\n");
-		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
-			strcpy ((*node)->accountNum,p);
-		else{
-			fprintf(stderr,"Wrong Bank Account: %s %s %s\n",(*node)->name,(*node)->password,p);
-			return 1;
-		}
+		strcpy ((*node)->accountNum,p);
+//		if (strlen(p) == 9 && strncmp(p,"4519",4) == 0)
+//			strcpy ((*node)->accountNum,p);
+//		else{
+//			fprintf(stderr,"Wrong Bank Account: %s %s %s\n",(*node)->name,(*node)->password,p);
+//			return 1;
+//		}
 
 	}
 	else{
@@ -314,6 +315,14 @@ int main(void)
 #ifdef DEBUG
 	puts(buf);
 #endif
+
+	if(cpid){
+		//parent process
+		puts("End of Phase 2 for <Seller2>.");
+	}else{
+		//child process
+		puts("End of Phase 2 for <Seller1>.");
+	}
 	/*End of phase 2*/
 	/**************************************************************************************************/
 	return 0;
