@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-//#define DEBUG
+#define DEBUG
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 #define PORTNUM_LEN 6	//"65566\0", 6 char in total
@@ -54,5 +54,7 @@ struct acceptedUserNode{
 };
 
 int findByName(void* listObj, void* keyword);
+char *addheader(char* dest, char* header);
+int removeheader(char* input);
 
 #endif /* EE450_H_ */

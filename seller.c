@@ -81,6 +81,7 @@ int main(void)
 	int sa_len = sizeof(sa);
 	char serverIP[INET6_ADDRSTRLEN];
 	char port_S_P2[PORTNUM_LEN]= {0} ;	//variable to store server port number for phase 2
+	char *header;
 	FILE *fp = NULL;
 
 	int cpid;
@@ -106,12 +107,14 @@ int main(void)
 				perror("sellerPass1.txt");
 				return 1;
 			}
+		header = "Seller2";
 		sleep(2);	//parent sleep 2s, wait until child finished
 	}else{
 		//child process
 		if (readSellerPass(1, "sellerPass1.txt", &sellerInfo) != 0){	//read sellerpass1.txt and load user information
 						perror("sellerPass1.txt");
 						return 1;}
+		header = "Seller1";
 	}
 
 	// loop through all the results and connect to the first we can
@@ -164,6 +167,7 @@ int main(void)
 	puts(buf);
 #endif
 	//send Login command to server
+	addheader(buf, header);
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("send");
 		    exit(1);
@@ -176,21 +180,27 @@ int main(void)
 	    exit(1);
 	}
 	buf[numbytes] = '\0';
+	removeheader(buf);
 	printf("Phase 1: Login request reply: %s .\n", buf);
 
 	//receive server IP
-	if ((numbytes = recv(sockfd, serverIP, INET6_ADDRSTRLEN, 0)) == -1) {
+	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
 	    exit(1);
 	}
-	serverIP[numbytes] = '\0';
+	buf[numbytes] = '\0';
+	removeheader(buf);
+	strcpy(serverIP, buf);
 
 	//receive server Port Number for phase 2
-	if ((numbytes = recv(sockfd, port_S_P2, sizeof port_S_P2, 0)) == -1) {
+	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
 	    exit(1);
 	}
-	port_S_P2[numbytes] = '\0';
+	buf[numbytes] = '\0';
+	removeheader(buf);
+	strcpy(port_S_P2, buf);
+
 	printf("Phase 1: Auction Server has IP Address:%s and PreAuction TCP Port Number:%s\n", serverIP, port_S_P2);
 
 	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1 end.
@@ -265,6 +275,7 @@ int main(void)
 		strcpy(buf, "Phase 2: <Seller1> send item lists.");
 		puts(buf);
 	}
+	addheader(buf, header);
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("send");
 		    exit(1);
@@ -273,6 +284,7 @@ int main(void)
 	//read and send seller name
 	fgets(buf, sizeof(buf), fp);
 	buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
+	addheader(buf, header);
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("send");
 		    exit(1);
@@ -282,6 +294,7 @@ int main(void)
 	//read one line and send per loop
 	while(fgets(buf, sizeof(buf), fp) != NULL){
 		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
+		addheader(buf, header);
 		if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 			    perror("send");
 			    exit(1);
@@ -291,6 +304,7 @@ int main(void)
 
 	//indicate end of file
 	strcpy(buf, "ListEnd#");
+	addheader(buf, header);
 	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 		    perror("send");
 		    exit(1);

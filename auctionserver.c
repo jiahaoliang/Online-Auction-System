@@ -237,6 +237,7 @@ int main(void){
 			perror("recv");
 			exit(1);
 		}
+		removeheader(buf);
 	#ifdef DEBUG
 		printf("recv: %s\n",buf);
 //			puts("press Enter key..");
@@ -258,19 +259,25 @@ int main(void){
 		puts(buf);
 	#endif
 		//send Accepted# or Rejected# command to user
+		addheader(buf, "Server");
 		if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 			perror("send");
 		//Upon acceptance the server will
 		//save the IP address of the accepted user and will bind it to its username for future reference.
+		removeheader(buf);
 		if(!strcmp(buf, "Accepted#")){
 			strcpy(newUser->ip_addr, s);
 			//if newUser is a seller, send the IP and PreAuction Port number to the it
 			if(newUser->type == 2){
 				//send IP address
-				if (send(new_fd, hostIP, INET6_ADDRSTRLEN, 0) == -1)
+				strcpy(buf, hostIP);
+				addheader(buf, "Server");
+				if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 					perror("send");
 				//send Port Number
-				if (send(new_fd, PORT_S_P2, sizeof(PORT_S_P2), 0) == -1)
+				strcpy(buf, PORT_S_P2);
+				addheader(buf, "Server");
+				if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 					perror("send");
 				printf("Phase 1: Auction Server IP Address:%s "
 						"PreAuction Port Number:%s sent to the <Seller%d>\n", hostIP, PORT_S_P2, newUser->userIndex);
@@ -354,13 +361,15 @@ int main(void){
 			exit(1);
 		}
 		puts(buf);
-
+		removeheader(buf);
+		puts(buf);
 		//receive user name
 		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 			perror("recv");
 			exit(1);
 		}
 		puts(buf);
+		removeheader(buf);
 
 		do{
 			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
@@ -368,6 +377,7 @@ int main(void){
 				exit(1);
 			}
 			puts(buf);
+			removeheader(buf);
 			if(!strcmp("ListEnd#",buf)) break;
 		}while(1);
 
