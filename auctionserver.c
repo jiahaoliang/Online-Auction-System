@@ -360,7 +360,6 @@ int main(void){
 			perror("recv");
 			exit(1);
 		}
-		puts(buf);
 		removeheader(buf);
 		puts(buf);
 		//receive user name
@@ -368,17 +367,17 @@ int main(void){
 			perror("recv");
 			exit(1);
 		}
-		puts(buf);
 		removeheader(buf);
+		puts(buf);
 
 		do{
 			if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 				perror("recv");
 				exit(1);
 			}
-			puts(buf);
 			removeheader(buf);
 			if(!strcmp("ListEnd#",buf)) break;
+			puts(buf);
 		}while(1);
 
 		close(new_fd);

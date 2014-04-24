@@ -289,6 +289,7 @@ int main(void)
 		    perror("send");
 		    exit(1);
 		}
+	removeheader(buf);
 	puts(buf);
 
 	//read one line and send per loop
@@ -299,6 +300,7 @@ int main(void)
 			    perror("send");
 			    exit(1);
 			}
+		removeheader(buf);
 		puts(buf);
 	}
 
