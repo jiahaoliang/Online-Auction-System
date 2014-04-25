@@ -29,11 +29,34 @@
 
 /**********************************************************
  * Static Ports
+ * Server
  * 1 TCP, 1100+xxx (last three digits of your ID) (phase 1)
  * 1 TCP, 1200+xxx (last three digits of your ID) (phase 2)
  **********************************************************/
 #define PORT_S_P1 "1894"	//Port number of Server in Phase 1, 1100+794 = 1894
 #define PORT_S_P2 "1994"	//Port number of Server in Phase 2, 1200+794 = 1994
+
+/**********************************************************
+ * Seller1
+ * 1 TCP, 2100+xxx (last three digits of your ID) (phase 3)
+ * Seller2
+ * 1 TCP, 2200+xxx (last three digits of your ID) (phase 3)
+ **********************************************************/
+#define PORT_SL1_P3 "2894"	//Port number of Seller1 in Phase 3, 2100+794 = 2894
+#define PORT_SL2_P3 "2994"	//Port number of Seller1 in Phase 3, 2200+794 = 2994
+
+/**********************************************************
+ * Bidder1
+ * 1 UDP, 3100 + xxx (last three digits of your ID) (phase 3)
+ * 1 TCP, 4100 + xxx (last three digits of your ID) (phase 3)
+ * Bidder2
+ * 1 UDP, 3200 + xxx (last three digits of your ID) (phase 3)
+ * 1 TCP, 4200 + xxx (last three digits of your ID) (phase 3)
+ **********************************************************/
+#define PORT_BD1_P3_UDP "3894"	//UDP Port number of Bidder1 in Phase 3, 3100+794 = 3894
+#define PORT_BD1_P3_TCP "4894"	//TCP Port number of Bidder1 in Phase 3, 4100+794 = 4894
+#define PORT_BD2_P3_UDP "3994"	//UDP Port number of Bidder2 in Phase 3, 3200+794 = 3994
+#define PORT_BD2_P3_TCP "4994"	//TCP Port number of Bidder2 in Phase 3, 4200+794 = 4994
 
 
 struct userNode{
