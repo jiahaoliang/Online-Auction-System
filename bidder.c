@@ -272,6 +272,7 @@ int main(void)
 		if((fp = fopen("bidding1.txt", "r")) == NULL){
 				perror("bidding1.txt");
 				exit(1);
+		}
 	}
 	//read one line and send per loop
 	while(fgets(buf, sizeof(buf), fp) != NULL){
@@ -283,7 +284,7 @@ int main(void)
 						exit(1);
 					}
 #ifdef DEBUG
-		printf("talker: sent %d bytes to Bidder%d\n", numbytes, i+1);
+		printf("talker: sent %d bytes to server\n", numbytes);
 #endif
 		removeheader(buf);
 		puts(buf);

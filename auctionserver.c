@@ -175,7 +175,7 @@ int main(void){
 
 	int sockfd, new_fd, udp_sock_fd[2];  // listen on sock_fd, new connection on new_fd
 	int numbytes;
-	char buf[MAXDATASIZE];
+	char buf[MAXDATASIZE], *str;
 	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_storage their_addr; // connector's address information
 	socklen_t sin_size;
@@ -184,7 +184,7 @@ int main(void){
 	char s[INET6_ADDRSTRLEN], hostIP[INET6_ADDRSTRLEN];
 	int i, rv;
 	char* header = "Server";
-	char bidderName[MAXBIDDER] = {0}, sellerName[MAXSELLER] = {0};
+	char bidderName[MAXBIDDER][NAME_MAX_LEN], sellerName[MAXSELLER][NAME_MAX_LEN]; //store bidders' name and sellers' name
 	FILE *fp;
 
 	struct singlyLinkedList *reg_list, *accept_list, //for phase 1
@@ -534,12 +534,12 @@ int main(void){
 			//store bidding info into bidding_list
 			struct BiddingItemNode *newObj = malloc(sizeof(struct BiddingItemNode));	//construct a new data node
 			memset(newObj, 0, sizeof(struct BiddingItemNode));
-			p = strtok(buf, " ");
-			strcpy (newObj->name,p);
-			p = strtok(NULL, " ");
-			strcpy (newObj->itemName,p);
-			p = strtok(NULL, "\n");
-			newObj->price = atoi(p);
+			str = strtok(buf, " ");
+			strcpy (newObj->name,str);
+			str = strtok(NULL, " ");
+			strcpy (newObj->itemName,str);
+			str = strtok(NULL, "\n");
+			newObj->price = atoi(str);
 			strcpy(newObj->bidder, bidderName[i]);
 			if (listAppend(bidding_list[i], (void *)newObj) != 0) return 1;
 		}while(1);
