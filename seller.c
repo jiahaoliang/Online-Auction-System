@@ -184,6 +184,17 @@ int main(void)
 	removeheader(buf);
 	printf("Phase 1: Login request reply: %s .\n", buf);
 
+	if(!strcmp(buf, "Rejected#")){	//if rejected, seller shouldn't appear in following phases
+		if(cpid){
+			//parent process
+			puts("End of Phase 1 for <Seller2>.");
+		}else{
+			//child process
+			puts("End of Phase 1 for <Seller1>.");}
+		close(sockfd);
+		return 0;
+	}
+
 	//receive server IP
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
@@ -204,7 +215,7 @@ int main(void)
 
 	printf("Phase 1: Auction Server has IP Address:%s and PreAuction TCP Port Number:%s\n", serverIP, port_S_P2);
 
-	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1 end.
+//	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1 end.
 	close(sockfd);
 
 	if(cpid){

@@ -31,8 +31,40 @@
 int g_userIndex = 0;	//global variable, indicate the index of user, such as user1, user2, etc
 
 /*
+ * read broadcastList.txt and parse all information then store them
+ * into the struct list. At the end, close file.
+ * listNode->obj = broadcastItemNode
+ * return 0 if successful, otherwise return 1.
+ */
+int readBroadcastList(const char *filename, struct singlyLinkedList *list){
+	FILE *fp = fopen(filename, "r");
+	char buffer[MAXDATASIZE] = {0};
+	char *p = buffer;
+
+	if (fp==NULL) return 1;
+
+	/*read a line from broadcastList.txt and parse it*/
+	while (fgets(buffer, MAXDATASIZE, fp) != NULL){
+		p = buffer;
+		struct broadcastItemNode *newObj = malloc(sizeof(struct broadcastItemNode));	//construct a new data node
+		memset(newObj, 0, sizeof(struct broadcastItemNode));
+
+		p = strtok(buffer, " ");
+		strcpy (newObj->name,p);
+		p = strtok(NULL, " ");
+		strcpy (newObj->itemName,p);
+		p = strtok(NULL, "\n");
+		newObj->minPrice = atoi(p);
+		if (listAppend(list, (void *)newObj) != 0) return 1;	//append newNode to the list
+	}
+
+	fclose(fp);
+	return 0;
+}
+/*
  * read Registration.txt and parse all information then store them
  * into the struct list. At the end, close file.
+ * listNode->obj = userNode
  * return 0 if successful, otherwise return 1.
  */
 int readRegistration(const char *filename, struct singlyLinkedList *list){
@@ -141,7 +173,7 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(void){
 
-	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
+	int sockfd, new_fd, udp_sock_fd[2];  // listen on sock_fd, new connection on new_fd
 	int numbytes;
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
@@ -151,8 +183,12 @@ int main(void){
 	int yes=1;
 	char s[INET6_ADDRSTRLEN], hostIP[INET6_ADDRSTRLEN];
 	int i, rv;
+	char* header = "Server";
+	char bidderName[MAXBIDDER] = {0}, sellerName[MAXSELLER] = {0};
+	FILE *fp;
 
-	struct singlyLinkedList *reg_list, *accept_list;
+	struct singlyLinkedList *reg_list, *accept_list, //for phase 1
+	*broadcast_list, *bidding_list[MAXBIDDER], *sold_list; //for phase 3
 
 	reg_list = malloc(sizeof(struct singlyLinkedList));	//registration list, contain all users info in Registration.txt
 	memset(reg_list, 0, sizeof(struct singlyLinkedList));
@@ -259,7 +295,7 @@ int main(void){
 		puts(buf);
 	#endif
 		//send Accepted# or Rejected# command to user
-		addheader(buf, "Server");
+		addheader(buf, header);
 		if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 			perror("send");
 		//Upon acceptance the server will
@@ -269,18 +305,23 @@ int main(void){
 			strcpy(newUser->ip_addr, s);
 			//if newUser is a seller, send the IP and PreAuction Port number to the it
 			if(newUser->type == 2){
+				//store its name for further use
+				strcpy(sellerName[newUser->userIndex], newUser->name);
 				//send IP address
 				strcpy(buf, hostIP);
-				addheader(buf, "Server");
+				addheader(buf, header);
 				if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 					perror("send");
 				//send Port Number
 				strcpy(buf, PORT_S_P2);
-				addheader(buf, "Server");
+				addheader(buf, header);
 				if (send(new_fd, buf, MAXDATASIZE-1, 0) == -1)
 					perror("send");
 				printf("Phase 1: Auction Server IP Address:%s "
 						"PreAuction Port Number:%s sent to the <Seller%d>\n", hostIP, PORT_S_P2, newUser->userIndex);
+			}else{
+				//if it is a bidder, store its name for further use
+				strcpy(bidderName[newUser->userIndex], newUser->name);
 			}
 		}
 
@@ -390,6 +431,120 @@ int main(void){
 
 	/*************************************************************************************************/
 	/*phase 3: Auction*/
+
+	broadcast_list = malloc(sizeof(struct singlyLinkedList));	// contain all broadcast items, listNode->obj = broadcastItemNode
+	memset(broadcast_list, 0, sizeof(struct singlyLinkedList));
+	readBroadcastList("broadcastList.txt", broadcast_list);
+
+	if((fp = fopen("broadcastList.txt", "r")) == NULL){
+		perror("broadcastList.txt");
+		exit(1);
+	}
+	//send broadcastList to bidder1 and bidder2, respectively
+	for(i=0;i<MAXBIDDER;i++){
+		rewind (fp);	//Set position of stream to the beginning
+		memset(&hints, 0, sizeof hints);
+		hints.ai_family = AF_INET;	//ipv4
+		hints.ai_socktype = SOCK_DGRAM;	//UDP socket
+		gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
+
+		if ((rv = getaddrinfo(buf, (i==0)?PORT_BD1_P3_UDP:PORT_BD2_P3_UDP, &hints, &servinfo)) != 0) {
+			fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+			return 1;
+		}
+
+		// loop through all the results and bind to the first we can
+		for(p = servinfo; p != NULL; p = p->ai_next){
+			if ((udp_sock_fd[i] = socket(p->ai_family, p->ai_socktype,
+					p->ai_protocol)) == -1) {
+					perror("server: socket");
+					continue; }
+//			if (setsockopt(udp_sock_fd[i], SOL_SOCKET, SO_REUSEADDR, &yes,
+//					sizeof(int)) == -1) {
+//					perror("setsockopt");
+//					exit(1); }
+//			if (bind(udp_sock_fd[i], p->ai_addr, p->ai_addrlen) == -1) {
+//				close(udp_sock_fd[i]);
+//				perror("server: bind");
+//				continue; }
+			break;
+		}
+
+		if (p == NULL){
+			fprintf(stderr, "server: failed to bind\n");
+			return 2;
+		}
+
+		puts("Phase 3:");
+
+		//read one line and send per loop
+		while(fgets(buf, sizeof(buf), fp) != NULL){
+			buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
+			addheader(buf, header);
+			if ((numbytes = sendto(udp_sock_fd[i], buf, strlen(buf), 0,
+								 p->ai_addr, p->ai_addrlen)) == -1) {
+							perror("talker: sendto");
+							exit(1);
+						}
+#ifdef DEBUG
+		    printf("talker: sent %d bytes to Bidder%d\n", numbytes, i+1);
+#endif
+			removeheader(buf);
+			puts(buf);
+		}
+
+		//indicate end of file
+		strcpy(buf, "ListEnd#");
+		addheader(buf, header);
+		if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+			    perror("send");
+			    exit(1);
+			}
+	#ifdef DEBUG
+		puts(buf);
+	#endif
+
+	    freeaddrinfo(servinfo);
+	}
+	fclose(fp);
+
+	//receiver bidding from bidder1 and bidder2, respectively
+	for(i=0;i<MAXBIDDER;i++){
+		bidding_list[i] = malloc(sizeof(struct singlyLinkedList));	// contain bidding items, listNode->obj = BiddingItemNode
+		memset(bidding_list[i], 0, sizeof(struct singlyLinkedList));
+		do{
+			if ((numbytes = recvfrom(udp_sock_fd[i], buf, MAXDATASIZE-1 , 0,
+					(struct sockaddr *)&their_addr, &sin_size)) == -1) {
+				perror("recvfrom");
+				exit(1);
+			}
+			buf[numbytes] = '\0';
+#ifdef DEBUG
+			printf("listener: got packet from %s\n",
+				   inet_ntop(their_addr.ss_family,
+					   get_in_addr((struct sockaddr *)&their_addr),
+					   s, sizeof s));
+			printf("listener: packet is %d bytes long\n", numbytes);
+			printf("listener: packet contains \"%s\"\n", buf);
+#endif
+			removeheader(buf);
+			if(!strcmp("ListEnd#",buf)) break;
+			puts(buf);
+
+			//store bidding info into bidding_list
+			struct BiddingItemNode *newObj = malloc(sizeof(struct BiddingItemNode));	//construct a new data node
+			memset(newObj, 0, sizeof(struct BiddingItemNode));
+			p = strtok(buf, " ");
+			strcpy (newObj->name,p);
+			p = strtok(NULL, " ");
+			strcpy (newObj->itemName,p);
+			p = strtok(NULL, "\n");
+			newObj->price = atoi(p);
+			strcpy(newObj->bidder, bidderName[i]);
+			if (listAppend(bidding_list[i], (void *)newObj) != 0) return 1;
+		}while(1);
+	}
+
 	return 0;
 
 
