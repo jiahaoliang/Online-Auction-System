@@ -26,7 +26,6 @@
 #define MAXSELLER 2
 #define MAXBIDDER 2
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
-#define BACKLOG 10	 // how many pending connections queue will hold
 
 int g_userIndex = 0;	//global variable, indicate the index of user, such as user1, user2, etc
 
@@ -646,6 +645,84 @@ int main(void){
 		printf("Phase 3: Item: %s %s was sold at price %d .\n",
 				soldListItem->name, soldListItem->itemName, soldListItem->price);
 	}
+
+	//sent 4 TCP packet to each of 4 users indicate the final sold info
+	sleep(5);	//wait for users listen their port
+	char *port_P3, *userName;
+	for(i=0;i<MAXUSER;i++){
+		//sending order: bidder1, bidder2, seller1, seller2
+		switch(i){
+		case 0:
+			port_P3 = PORT_BD1_P3_TCP;
+			userName = bidderName[0];
+			break;
+		case 1:
+			port_P3 = PORT_BD2_P3_TCP;
+			userName = bidderName[1];
+			break;
+		case 2:
+			port_P3 = PORT_SL1_P3;
+			userName = sellerName[0];
+			break;
+		case 3:
+			port_P3 = PORT_SL2_P3;
+			userName = sellerName[1];
+			break;
+		default:
+			fprintf(stderr, "More than 4 users!\n");
+			exit(1);
+		}
+
+		memset(&hints, 0, sizeof hints);
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
+
+		if ((rv = getaddrinfo(HOSTNAME, port_P3, &hints, &servinfo)) != 0) {
+			fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+			return 1;
+		}
+
+		// loop through all the results and connect to the first we can
+		for(p = servinfo; p != NULL; p = p->ai_next) {
+			if ((sockfd = socket(p->ai_family, p->ai_socktype,
+					p->ai_protocol)) == -1) {
+				perror("client: socket");
+				continue;
+			}
+
+			if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+				close(sockfd);
+				perror("client: connect");
+				continue;
+			}
+
+			break;
+		}
+		if (p == NULL) {
+			fprintf(stderr, "client: failed to connect\n");
+			return 2;
+		}
+
+		freeaddrinfo(servinfo); // all done with this structure
+
+		for(itr_sold = sold_list->head; itr_sold != NULL; itr_sold = itr_sold->next){
+			soldListItem = (struct BiddingItemNode*)itr_sold->obj;
+			if(soldListItem->name == userName || soldListItem->bidder == userName){
+				sprintf(buf, "Phase 3: Item: %s %s was sold at price %d .\n",
+							soldListItem->name, soldListItem->itemName, soldListItem->price);
+				addheader(buf, header);
+				if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+					perror("send");
+					exit(1);
+				}
+			}
+		}
+
+		close(sockfd);
+	}
+
+	puts("End of Phase 3 for Auction Server.");
+
 
 	return 0;
 
