@@ -223,7 +223,7 @@ int main(void)
 		fprintf(stderr, "listener: failed to bind socket\n");
 		return 2;
 	}
-	sleep(5); //wait for server begin phase 3
+	sleep(15); //wait for server begin phase 3
 
 	//Phase 3: <Bidder#>__ has UDP port ___ and IP address: ____
 	getsockname(sockfd, (struct sockaddr*)&sa, &sa_len);

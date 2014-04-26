@@ -498,7 +498,7 @@ int main(void){
 			inet_ntop(AF_INET, (void*)&(sa.sin_addr), s, sizeof s);
 			//Phase 3: Auction Server IP Address: _______ Auction UDP Port Number: _______ .
 			printf("Phase 3: Auction Server IP Address:%s Auction UDP Port Number:%d .\n",
-					s, sa.sin_port);
+					hostIP, sa.sin_port);
 			puts("Phase 3: (Item list displayed here)");
 			puts(buf);
 		}
@@ -576,6 +576,76 @@ int main(void){
 		}while(1);
 	}
 
+
+	//process info and make sold decision
+	struct listNode* itr_broadcast, *itr_bidding, *itr_sold;	//iterator for broadcastlist, biddinglist and sold_list
+	struct BiddingItemNode* itemBidding1, *itemBidding2;	//item on biddinglist1 and biddinglist2
+	struct broadcastItemNode* itemBroadcast;	//item on broadcastlist
+
+	listInitialize(&sold_list);
+
+	//iterate broadcast_list for every item on the list
+	for(itr_broadcast = broadcast_list->head; itr_broadcast != NULL; itr_broadcast = itr_broadcast->next){
+
+		itemBroadcast = (struct broadcastItemNode*)itr_broadcast->obj;
+
+		//find the matching item on biddinglist1 (bidding_list[0])
+		itemBidding1 = NULL;
+		for(itr_bidding = (bidding_list[0])->head; itr_bidding != NULL; itr_bidding = itr_bidding->next){
+			if(!matchItem(itr_bidding->obj, itemBroadcast->name, itemBroadcast->itemName)){
+				itemBidding1 = (struct BiddingItemNode*)itr_bidding->obj;
+				break;
+			}
+		}
+
+		//find the matching item on biddinglist2 (bidding_list[1])
+		itemBidding2 = NULL;
+		for(itr_bidding = (bidding_list[1])->head; itr_bidding != NULL; itr_bidding = itr_bidding->next){
+			if(!matchItem(itr_bidding->obj, itemBroadcast->name, itemBroadcast->itemName)){
+				itemBidding2 = (struct BiddingItemNode*)itr_bidding->obj;
+				break;
+			}
+		}
+
+		//bidding price must not less than minimum price
+		if(itemBidding1 != NULL){
+			if(itemBidding1->price < itemBroadcast->minPrice) itemBidding1 = NULL;
+		}
+		if(itemBidding2 != NULL){
+			if(itemBidding2->price < itemBroadcast->minPrice) itemBidding2 = NULL;
+		}
+
+		struct BiddingItemNode *newSoldListObj;
+
+		//if cannot find matching item on biddinglist1
+		if(itemBidding1 == NULL){
+			if(itemBidding2 == NULL) continue;
+			newSoldListObj = malloc(sizeof(struct BiddingItemNode));
+			memcpy(newSoldListObj, itemBidding2, sizeof(struct BiddingItemNode));
+			listAppend(sold_list, newSoldListObj);
+		//if can find matching item on biddinglist1, cannot find matching list on itemBidding2
+		}else if(itemBidding2 == NULL){
+			newSoldListObj = malloc(sizeof(struct BiddingItemNode));
+			memcpy(newSoldListObj, itemBidding1, sizeof(struct BiddingItemNode));
+			listAppend(sold_list, newSoldListObj);
+		//if can find matching item on both lists
+		}else{
+			newSoldListObj = malloc(sizeof(struct BiddingItemNode));
+			memcpy(newSoldListObj,
+					(itemBidding1->price > itemBidding2->price)?itemBidding1:itemBidding2,
+					sizeof(struct BiddingItemNode));
+			listAppend(sold_list,newSoldListObj);
+		}
+	}
+
+	//Now we have the complete sold_list
+	//print the whole sold_list on server
+	struct BiddingItemNode* soldListItem;
+	for(itr_sold = sold_list->head; itr_sold != NULL; itr_sold = itr_sold->next){
+		soldListItem = (struct BiddingItemNode*)itr_sold->obj;
+		printf("Phase 3: Item: %s %s was sold at price %d .\n",
+				soldListItem->name, soldListItem->itemName, soldListItem->price);
+	}
 
 	return 0;
 

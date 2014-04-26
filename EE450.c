@@ -14,6 +14,13 @@ int findByName(void* listObj, void* keyword){
 	return strcmp(((struct userNode*)listObj)->name, (char*)keyword);
 }
 
+//(struct BiddingItemNode*)listObj
+//if the listObj->name field matches name, listObj->itemName matches itemName, return 0;
+int matchItem(void* listObj, void* name, void* itemName){
+	return (strcmp(((struct BiddingItemNode*)listObj)->name, (char*)name) ||
+			strcmp(((struct BiddingItemNode*)listObj)->itemName, (char*)itemName));
+}
+
 //header format: "header"
 //output string: "<header>dest"
 char *addheader(char* dest, char* header){

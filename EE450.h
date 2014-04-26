@@ -91,6 +91,7 @@ struct BiddingItemNode{
 };
 
 int findByName(void* listObj, void* keyword);
+int matchItem(void* listObj, void* name, void* itemName);
 char *addheader(char* dest, char* header);
 int removeheader(char* input);
 
