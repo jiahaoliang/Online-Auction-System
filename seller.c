@@ -220,10 +220,10 @@ int main(void)
 
 	if(cpid){
 		//parent process
-		puts("End of Phase 1 for <Seller2>.");
+		puts("End of Phase 1 for <Seller2>.\n");
 	}else{
 		//child process
-		puts("End of Phase 1 for <Seller1>.");
+		puts("End of Phase 1 for <Seller1>.\n");
 	}
 	/*End of phase 1*/
 
@@ -329,10 +329,10 @@ int main(void)
 
 	if(cpid){
 		//parent process
-		puts("End of Phase 2 for <Seller2>.");
+		puts("End of Phase 2 for <Seller2>.\n");
 	}else{
 		//child process
-		puts("End of Phase 2 for <Seller1>.");
+		puts("End of Phase 2 for <Seller1>.\n");
 	}
 	/*End of phase 2*/
 	/**************************************************************************************************/

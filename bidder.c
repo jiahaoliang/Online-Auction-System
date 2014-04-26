@@ -183,7 +183,7 @@ int main(void)
 	}
 	buf[numbytes] = '\0';
 	removeheader(buf);
-	printf("Phase 1: Login request reply: %s .\n", buf);
+	printf("Phase 1: Login request reply: %s .\n\n", buf);
 //	printf("client: received '%s'\n",buf);
 
 //	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1
@@ -192,7 +192,6 @@ int main(void)
 	if(!strcmp(buf, "Rejected#")) return 0;	//if rejected, bidder shouldn't appear in following phases
 
 	/*************************************************************************************************/
-	sleep(15);
 	/*phase 3: Auction*/
 #ifdef DEBUG
 	puts("Phase 3");
@@ -224,6 +223,7 @@ int main(void)
 		fprintf(stderr, "listener: failed to bind socket\n");
 		return 2;
 	}
+	sleep(5); //wait for server begin phase 3
 
 	//Phase 3: <Bidder#>__ has UDP port ___ and IP address: ____
 	getsockname(sockfd, (struct sockaddr*)&sa, &sa_len);
@@ -232,13 +232,14 @@ int main(void)
 		//parent process
 		sleep(5);	// parent/bidder2 sleep 5s, wait until child finished
 		printf("Phase 3: <Bidder2> has UDP port %d and IP address: %s\n",	sa.sin_port, s);
+		puts("Phase 3: <Bidder2> (Item list displayed here)");
 	}else{
 		//child process
 		printf("Phase 3: <Bidder1> has UDP port %d and IP address: %s\n",	sa.sin_port, s);
+		puts("Phase 3: <Bidder1> (Item list displayed here)");
 	}
 	freeaddrinfo(servinfo);
 
-	puts("Phase 3:");
 	//receive broadcastList
 	do{
 		if ((numbytes = recvfrom(sockfd, buf, MAXDATASIZE-1 , 0,
@@ -260,6 +261,9 @@ int main(void)
 		puts(buf);
 	}while(1);
 
+
+	sleep(5);	//wait for server open UDP recv
+
 	/*send bidding info*/
 	if(cpid){
 		//parent process
@@ -267,24 +271,28 @@ int main(void)
 				perror("bidding2.txt");
 				exit(1);
 			}
+		puts("Phase 3: <Bidder2> (Bidding information displayed here)");
 	}else{
 		//child process
 		if((fp = fopen("bidding1.txt", "r")) == NULL){
 				perror("bidding1.txt");
 				exit(1);
 		}
+		puts("Phase 3: <Bidder1> (Bidding information displayed here)");
 	}
 	//read one line and send per loop
 	while(fgets(buf, sizeof(buf), fp) != NULL){
 		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
 		addheader(buf, header);
 		if ((numbytes = sendto(sockfd, buf, strlen(buf), 0,
-							 p->ai_addr, p->ai_addrlen)) == -1) {
+				(struct sockaddr*)&their_addr,
+				sizeof(struct sockaddr_in))) == -1) {
 						perror("talker: sendto");
 						exit(1);
 					}
 #ifdef DEBUG
 		printf("talker: sent %d bytes to server\n", numbytes);
+		puts(buf);
 #endif
 		removeheader(buf);
 		puts(buf);
@@ -292,10 +300,12 @@ int main(void)
 	//indicate end of file
 	strcpy(buf, "ListEnd#");
 	addheader(buf, header);
-	if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-			perror("send");
-			exit(1);
-		}
+	if ((numbytes = sendto(sockfd, buf, strlen(buf), 0,
+			(struct sockaddr*)&their_addr,
+			sizeof(struct sockaddr_in))) == -1){
+				perror("talker: sendto");
+				exit(1);
+			}
 #ifdef DEBUG
 	puts(buf);
 #endif
