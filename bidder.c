@@ -310,6 +310,8 @@ int main(void)
 #ifdef DEBUG
 	puts(buf);
 #endif
+	close(sockfd);
+	return 0;
 
 	//receive final sold decision
 	memset(&hints, 0, sizeof hints);

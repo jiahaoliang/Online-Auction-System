@@ -329,7 +329,7 @@ int main(void)
 #ifdef DEBUG
 	puts(buf);
 #endif
-
+	close(sockfd);
 	if(cpid){
 		//parent process
 		puts("End of Phase 2 for <Seller2>.\n");
@@ -339,7 +339,7 @@ int main(void)
 	}
 	/*End of phase 2*/
 	/**************************************************************************************************/
-
+	return 0;
 	/**************************************************************************************************/
 	/*Phase 3: Auction*/
 	//receive final sold decision
