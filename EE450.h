@@ -27,6 +27,7 @@
 #define PASS_TXT_LINE_LEN 35	//max length of a line in bidderPass.txt & sellerPass.txt, REG_TXT_LINE_LEN +2
 
 #define HOSTNAME "nunki.usc.edu"
+#define BACKLOG 10	 // how many pending connections queue will hold
 
 /**********************************************************
  * Static Ports
@@ -91,6 +92,7 @@ struct BiddingItemNode{
 };
 
 int findByName(void* listObj, void* keyword);
+int findByBidder(void* listObj, void* keyword);
 int matchItem(void* listObj, void* name, void* itemName);
 char *addheader(char* dest, char* header);
 int removeheader(char* input);

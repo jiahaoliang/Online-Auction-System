@@ -73,10 +73,13 @@ int readSellerPass(int sellerIndex, const char *filename, struct userNode **node
 
 int main(void)
 {
-	int sockfd, numbytes;
+	int sockfd, new_fd, numbytes;
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
+	int yes=1;
+	struct sockaddr_storage their_addr; // connector's address information
+	socklen_t sin_size;
 	char s[INET_ADDRSTRLEN];
 	struct sockaddr_in sa;	//store local address
 	int sa_len = sizeof(sa);
@@ -336,5 +339,74 @@ int main(void)
 	}
 	/*End of phase 2*/
 	/**************************************************************************************************/
+
+	/**************************************************************************************************/
+	/*Phase 3: Auction*/
+	//receive final sold decision
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;	//ipv4
+	hints.ai_socktype = SOCK_STREAM;	//TCP socket
+	gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
+
+	if ((rv = getaddrinfo(buf, (cpid)?PORT_SL2_P3:PORT_SL1_P3, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+				perror("server: socket");
+				continue; }
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(int)) == -1) {
+	            perror("setsockopt");
+	            exit(1); }
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("server: bind");
+			continue; }
+		break;
+	}
+
+	if (p == NULL){
+		fprintf(stderr, "server: failed to bind\n");
+		return 2;
+	}
+
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if (listen(sockfd, BACKLOG) == -1) {
+		perror("listen");
+		exit(1);
+	}
+
+	new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+	if (new_fd == -1) {
+		perror("accept");
+		exit(1);
+	}
+
+	do{
+		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		removeheader(buf);
+		puts(buf);
+	}while(1);
+
+	close(new_fd);
+	close(sockfd);
+
+	if(cpid){
+		//parent process
+		puts("End of Phase 3 for <Seller2>.\n");
+	}else{
+		//child process
+		puts("End of Phase 3 for <Seller1>.\n");
+	}
+
 	return 0;
 }
