@@ -73,16 +73,24 @@ int readBidderPass(int bidderIndex, const char *filename, struct userNode **node
 
 int main(void)
 {
+//	int sockfd, new_fd111, numbytes;
 	int sockfd, numbytes;
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
+//	int yes=1;
 	char s[INET_ADDRSTRLEN];
 	char* header;
 	struct sockaddr_in sa;	//store local address
 	int sa_len = sizeof(sa);
+	FILE *fp;
+
+	struct sockaddr_storage their_addr; // connector's address information
+	socklen_t sin_size;
 
 	int cpid;
+//	int whatTheHell = 1;
+//	printf("whatTheHell = %d\n", whatTheHell);
 
 	struct userNode* bidderInfo;
 	bidderInfo = malloc(sizeof(struct userNode));
@@ -179,14 +187,206 @@ int main(void)
 	}
 	buf[numbytes] = '\0';
 	removeheader(buf);
-	printf("Phase 1: Login request reply: %s .\n", buf);
+	printf("Phase 1: Login request reply: %s .\n\n", buf);
 //	printf("client: received '%s'\n",buf);
 
-	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1
+//	while ((recv(sockfd, buf, MAXDATASIZE-1, 0)) != 0);	//wait until server close(sockfd), phase 1
 	close(sockfd);
 	/*End of phase 1*/
+	if(!strcmp(buf, "Rejected#")) return 0;	//if rejected, bidder shouldn't appear in following phases
+
+	/*************************************************************************************************/
+	/*phase 3: Auction*/
+#ifdef DEBUG
+	puts("Phase 3");
+#endif
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;	//ipv4
+	hints.ai_socktype = SOCK_DGRAM;	//UDP socket
+	gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
+
+	if ((rv = getaddrinfo(buf, (!cpid)?PORT_BD1_P3_UDP:PORT_BD2_P3_UDP, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+			perror("listener: socket");
+			continue;
+		}
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("listener: bind");
+			continue; }
+		break;
+	}
+
+	if (p == NULL) {
+		fprintf(stderr, "listener: failed to bind socket\n");
+		return 2;
+	}
+//	sleep(15); //wait for server begin phase 3
+	sleep(10);
+
+	//Phase 3: <Bidder#>__ has UDP port ___ and IP address: ____
+	getsockname(sockfd, (struct sockaddr*)&sa, &sa_len);
+	inet_ntop(AF_INET, (void*)&(sa.sin_addr), s, sizeof s);
+	if(cpid){
+		//parent process
+		sleep(5);	// parent/bidder2 sleep 5s, wait until child finished
+		printf("Phase 3: <Bidder2> has UDP port %d and IP address: %s\n",	sa.sin_port, s);
+		puts("Phase 3: <Bidder2> (Item list displayed here)");
+	}else{
+		//child process
+		printf("Phase 3: <Bidder1> has UDP port %d and IP address: %s\n",	sa.sin_port, s);
+		puts("Phase 3: <Bidder1> (Item list displayed here)");
+	}
+	freeaddrinfo(servinfo);
+
+	//receive broadcastList
+	do{
+		if ((numbytes = recvfrom(sockfd, buf, MAXDATASIZE-1 , 0,
+				(struct sockaddr *)&their_addr, &sin_size)) == -1) {
+			perror("recvfrom");
+			exit(1);
+		}
+		buf[numbytes] = '\0';
+#ifdef DEBUG
+		printf("listener: got packet from %s\n",
+			   inet_ntop(their_addr.ss_family,
+				   get_in_addr((struct sockaddr *)&their_addr),
+				   s, sizeof s));
+		printf("listener: packet is %d bytes long\n", numbytes);
+		printf("listener: packet contains \"%s\"\n", buf);
+#endif
+		removeheader(buf);
+		if(!strcmp("ListEnd#",buf)) break;
+		puts(buf);
+	}while(1);
 
 
+	sleep(5);	//wait for server open UDP recv
+
+	/*send bidding info*/
+	if(cpid){
+		//parent process
+		if((fp = fopen("bidding2.txt", "r")) == NULL){
+				perror("bidding2.txt");
+				exit(1);
+			}
+		puts("Phase 3: <Bidder2> (Bidding information displayed here)");
+	}else{
+		//child process
+		if((fp = fopen("bidding1.txt", "r")) == NULL){
+				perror("bidding1.txt");
+				exit(1);
+		}
+		puts("Phase 3: <Bidder1> (Bidding information displayed here)");
+	}
+	//read one line and send per loop
+	while(fgets(buf, sizeof(buf), fp) != NULL){
+		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
+		addheader(buf, header);
+		if ((numbytes = sendto(sockfd, buf, strlen(buf), 0,
+				(struct sockaddr*)&their_addr,
+				sizeof(struct sockaddr_in))) == -1) {
+						perror("talker: sendto");
+						exit(1);
+					}
+#ifdef DEBUG
+		printf("talker: sent %d bytes to server\n", numbytes);
+		puts(buf);
+#endif
+		removeheader(buf);
+		puts(buf);
+	}
+	//indicate end of file
+	strcpy(buf, "ListEnd#");
+	addheader(buf, header);
+	if ((numbytes = sendto(sockfd, buf, strlen(buf), 0,
+			(struct sockaddr*)&their_addr,
+			sizeof(struct sockaddr_in))) == -1){
+				perror("talker: sendto");
+				exit(1);
+			}
+#ifdef DEBUG
+	puts(buf);
+#endif
+	close(sockfd);
+
+	//receive final sold decision
+//	int yes = 1;
+//	int new_fd;
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;	//ipv4
+	hints.ai_socktype = SOCK_STREAM;	//TCP socket
+	gethostname(buf, MAXDATASIZE-1);	//use buf to store hostname temporarily
+
+	if ((rv = getaddrinfo(buf, (cpid)?PORT_BD2_P3_TCP:PORT_BD1_P3_TCP, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+				perror("server: socket");
+				continue; }
+		sa_len = 1;
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &sa_len,
+				sizeof(int)) == -1) {
+	            perror("setsockopt");
+	            exit(1); }
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("server: bind");
+			continue; }
+		break;
+	}
+
+	if (p == NULL){
+		fprintf(stderr, "server: failed to bind\n");
+		return 2;
+	}
+
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if (listen(sockfd, BACKLOG) == -1) {
+		perror("listen");
+		exit(1);
+	}
+
+	rv = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+	if (rv == -1) {
+		perror("accept");
+		exit(1);
+	}
+
+	do{
+		if ((numbytes = recv(rv, buf, MAXDATASIZE-1, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		removeheader(buf);
+		if(!strcmp("ListEnd#",buf)) break;
+		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
+		puts(buf);
+	}while(1);
+
+	close(rv);
+	close(sockfd);
+
+
+	if(cpid){
+		//parent process
+		puts("End of Phase 3 for <Bidder2>.\n");
+	}else{
+		//child process
+		puts("End of Phase 3 for <Bidder1>.\n");
+	}
 
 	return 0;
 }

@@ -21,19 +21,44 @@
 #define NAME_MAX_LEN 10		//max length of a user name in Registration.txt
 #define PW_MX_LEN 10		//max length of a password in Registration.txt
 #define ACCOUNT_NUM_MAX_LEN 10	//max length of an account number in Registration.txt
+#define ITEMNAME_MAX_LEN 10
 
 #define REG_TXT_LINE_LEN 33		//max length of a line in Registration.txt, NAME_MAX_LEN + PW_MX_LEN + ACCOUNT_NUM_MAX_LEN + 3spaces
 #define PASS_TXT_LINE_LEN 35	//max length of a line in bidderPass.txt & sellerPass.txt, REG_TXT_LINE_LEN +2
 
 #define HOSTNAME "nunki.usc.edu"
+#define BACKLOG 10	 // how many pending connections queue will hold
 
 /**********************************************************
  * Static Ports
+ * Server
  * 1 TCP, 1100+xxx (last three digits of your ID) (phase 1)
  * 1 TCP, 1200+xxx (last three digits of your ID) (phase 2)
  **********************************************************/
 #define PORT_S_P1 "1894"	//Port number of Server in Phase 1, 1100+794 = 1894
 #define PORT_S_P2 "1994"	//Port number of Server in Phase 2, 1200+794 = 1994
+
+/**********************************************************
+ * Seller1
+ * 1 TCP, 2100+xxx (last three digits of your ID) (phase 3)
+ * Seller2
+ * 1 TCP, 2200+xxx (last three digits of your ID) (phase 3)
+ **********************************************************/
+#define PORT_SL1_P3 "2894"	//Port number of Seller1 in Phase 3, 2100+794 = 2894
+#define PORT_SL2_P3 "2994"	//Port number of Seller1 in Phase 3, 2200+794 = 2994
+
+/**********************************************************
+ * Bidder1
+ * 1 UDP, 3100 + xxx (last three digits of your ID) (phase 3)
+ * 1 TCP, 4100 + xxx (last three digits of your ID) (phase 3)
+ * Bidder2
+ * 1 UDP, 3200 + xxx (last three digits of your ID) (phase 3)
+ * 1 TCP, 4200 + xxx (last three digits of your ID) (phase 3)
+ **********************************************************/
+#define PORT_BD1_P3_UDP "3894"	//UDP Port number of Bidder1 in Phase 3, 3100+794 = 3894
+#define PORT_BD1_P3_TCP "4894"	//TCP Port number of Bidder1 in Phase 3, 4100+794 = 4894
+#define PORT_BD2_P3_UDP "3994"	//UDP Port number of Bidder2 in Phase 3, 3200+794 = 3994
+#define PORT_BD2_P3_TCP "4994"	//TCP Port number of Bidder2 in Phase 3, 4200+794 = 4994
 
 
 struct userNode{
@@ -53,7 +78,22 @@ struct acceptedUserNode{
 	char ip_addr[INET6_ADDRSTRLEN];	//ip address of accepted user, can be either IPv4 or IPv6
 };
 
+struct broadcastItemNode{
+	char name[NAME_MAX_LEN];	//seller's name
+	char itemName[ITEMNAME_MAX_LEN];	//item's name
+	int minPrice;	//minimum price to sell this item
+};
+
+struct BiddingItemNode{
+	char name[NAME_MAX_LEN];	//seller's name
+	char bidder[NAME_MAX_LEN];	//bidder's name
+	char itemName[ITEMNAME_MAX_LEN];	//item's name
+	int price;	//price to bid this item
+};
+
 int findByName(void* listObj, void* keyword);
+int findByBidder(void* listObj, void* keyword);
+int matchItem(void* listObj, void* name, void* itemName);
 char *addheader(char* dest, char* header);
 int removeheader(char* input);
 
