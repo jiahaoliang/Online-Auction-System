@@ -74,6 +74,7 @@ int readSellerPass(int sellerIndex, const char *filename, struct userNode **node
 int main(void)
 {
 	int sockfd, new_fd, numbytes;
+//	int sockfd, numbytes;
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
@@ -339,7 +340,7 @@ int main(void)
 	}
 	/*End of phase 2*/
 	/**************************************************************************************************/
-	return 0;
+
 	/**************************************************************************************************/
 	/*Phase 3: Auction*/
 	//receive final sold decision
@@ -394,6 +395,8 @@ int main(void)
 			exit(1);
 		}
 		removeheader(buf);
+		if(!strcmp("ListEnd#",buf)) break;
+		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
 		puts(buf);
 	}while(1);
 

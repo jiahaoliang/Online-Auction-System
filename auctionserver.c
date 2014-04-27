@@ -707,7 +707,7 @@ int main(void){
 
 		for(itr_sold = sold_list->head; itr_sold != NULL; itr_sold = itr_sold->next){
 			soldListItem = (struct BiddingItemNode*)itr_sold->obj;
-			if(soldListItem->name == userName || soldListItem->bidder == userName){
+			if(!strcmp(soldListItem->name,userName) || !strcmp(soldListItem->bidder,userName)){
 				sprintf(buf, "Phase 3: Item: %s %s was sold at price %d .\n",
 							soldListItem->name, soldListItem->itemName, soldListItem->price);
 				addheader(buf, header);
@@ -716,6 +716,13 @@ int main(void){
 					exit(1);
 				}
 			}
+		}
+		//indicate end of file
+		strcpy(buf, "ListEnd#");
+		addheader(buf, header);
+		if ((numbytes = send(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+				perror("send");
+				exit(1);
 		}
 
 		close(sockfd);

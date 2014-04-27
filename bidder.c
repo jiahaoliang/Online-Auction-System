@@ -73,11 +73,12 @@ int readBidderPass(int bidderIndex, const char *filename, struct userNode **node
 
 int main(void)
 {
-	int sockfd, new_fd, numbytes;
+//	int sockfd, new_fd111, numbytes;
+	int sockfd, numbytes;
 	char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
-	int yes=1;
+//	int yes=1;
 	char s[INET_ADDRSTRLEN];
 	char* header;
 	struct sockaddr_in sa;	//store local address
@@ -88,6 +89,8 @@ int main(void)
 	socklen_t sin_size;
 
 	int cpid;
+//	int whatTheHell = 1;
+//	printf("whatTheHell = %d\n", whatTheHell);
 
 	struct userNode* bidderInfo;
 	bidderInfo = malloc(sizeof(struct userNode));
@@ -224,7 +227,8 @@ int main(void)
 		fprintf(stderr, "listener: failed to bind socket\n");
 		return 2;
 	}
-	sleep(15); //wait for server begin phase 3
+//	sleep(15); //wait for server begin phase 3
+	sleep(10);
 
 	//Phase 3: <Bidder#>__ has UDP port ___ and IP address: ____
 	getsockname(sockfd, (struct sockaddr*)&sa, &sa_len);
@@ -311,9 +315,10 @@ int main(void)
 	puts(buf);
 #endif
 	close(sockfd);
-	return 0;
 
 	//receive final sold decision
+//	int yes = 1;
+//	int new_fd;
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;	//ipv4
 	hints.ai_socktype = SOCK_STREAM;	//TCP socket
@@ -330,7 +335,8 @@ int main(void)
 				p->ai_protocol)) == -1) {
 				perror("server: socket");
 				continue; }
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+		sa_len = 1;
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &sa_len,
 				sizeof(int)) == -1) {
 	            perror("setsockopt");
 	            exit(1); }
@@ -353,23 +359,26 @@ int main(void)
 		exit(1);
 	}
 
-	new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
-	if (new_fd == -1) {
+	rv = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+	if (rv == -1) {
 		perror("accept");
 		exit(1);
 	}
 
 	do{
-		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+		if ((numbytes = recv(rv, buf, MAXDATASIZE-1, 0)) == -1) {
 			perror("recv");
 			exit(1);
 		}
 		removeheader(buf);
+		if(!strcmp("ListEnd#",buf)) break;
+		buf[strlen(buf)-1] = '\0';		//remove '\n' in the end
 		puts(buf);
 	}while(1);
 
-	close(new_fd);
+	close(rv);
 	close(sockfd);
+
 
 	if(cpid){
 		//parent process
