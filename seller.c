@@ -388,7 +388,13 @@ int main(void)
 		perror("accept");
 		exit(1);
 	}
-
+	if(cpid){
+		//parent process
+		puts("Phase 3: <Seller2>");
+	}else{
+		//child process
+		puts("Phase 3: <Seller1>");
+	}
 	do{
 		if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 			perror("recv");

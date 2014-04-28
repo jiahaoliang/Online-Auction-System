@@ -228,7 +228,7 @@ int main(void)
 		return 2;
 	}
 //	sleep(15); //wait for server begin phase 3
-	sleep(10);
+	sleep(20);
 
 	//Phase 3: <Bidder#>__ has UDP port ___ and IP address: ____
 	getsockname(sockfd, (struct sockaddr*)&sa, &sa_len);
@@ -364,7 +364,13 @@ int main(void)
 		perror("accept");
 		exit(1);
 	}
-
+	if(cpid){
+		//parent process
+		puts("Phase 3: <Bidder2>");
+	}else{
+		//child process
+		puts("Phase 3: <Bidder1>");
+	}
 	do{
 		if ((numbytes = recv(rv, buf, MAXDATASIZE-1, 0)) == -1) {
 			perror("recv");

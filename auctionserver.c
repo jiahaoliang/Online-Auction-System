@@ -255,7 +255,7 @@ int main(void){
 //		exit(1);
 //	}
 
-	printf("server: waiting for connections...\n");
+//	printf("server: waiting for connections...\n");
 
 	for(i=0;i<MAXUSER;i++) {  // main accept() loop
 		sin_size = sizeof their_addr;
